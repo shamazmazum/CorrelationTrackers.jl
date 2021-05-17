@@ -1,0 +1,17 @@
+name = "CorrelationTrackers"
+uuid = "2aaf3720-2af0-4ca4-b7d9-7d970023fcad"
+authors = ["Vasily Postnicov <shamaz.mazum@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+CorrelationFunctions = "cd8c4018-4f35-43b7-8520-d042ebaeaa2d"
+
+[compat]
+CorrelationFunctions = "0.1.1"
+julia = "^1.0"
+
+[extras]
+XUnit = "3e3c03f2-1a94-11e9-2981-050a4ca824ab"
+
+[targets]
+test = ["XUnit"]
