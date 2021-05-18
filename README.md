@@ -1,4 +1,5 @@
 # CorrelationTrackers.jl
+[![CI](https://github.com/shamazmazum/CorrelationTrackers.jl/actions/workflows/test.yml/badge.svg)](https://github.com/shamazmazum/CorrelationTrackers.jl/actions/workflows/test.yml)
 
 `CorrelationTrackers.jl` package contains a single `CorrelationTracker` type
 which tracks an array and helps to recalculate correlation functions from
