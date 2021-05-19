@@ -29,7 +29,7 @@ function update_corrfunc!(tracker  :: CorrelationTracker{T},
     corrdata = corrfunc(tracker)
     len = length(corrdata)
     for (direction, _) in corrdata
-        slice, slice_idx = get_slice(tracker.system, direction, idx)
+        slice, slice_idx = get_slice(tracker.system, idx, direction)
         oldcorr = corrfunc(slice, tracker.phase;
                            periodic = tracker.periodic, len = len)
         slice[slice_idx] = val
