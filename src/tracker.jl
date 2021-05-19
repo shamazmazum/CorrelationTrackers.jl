@@ -22,10 +22,10 @@ function CorrelationTracker(system     :: AbstractArray,
     return CorrelationTracker(copy(system), phase, periodic, l2, s2)
 end
 
-function update_corrfunc!(tracker  :: CorrelationTracker{T},
-                          val      :: T,
+function update_corrfunc!(tracker  :: CorrelationTracker,
+                          val,
                           corrfunc :: Function,
-                          idx      :: Tuple) where T
+                          idx      :: Tuple)
     corrdata = corrfunc(tracker)
     len = length(corrdata)
     for (direction, _) in corrdata
@@ -49,9 +49,9 @@ Directional.s2(x :: CorrelationTracker) = x.s2
 # Array interface
 Base.size(x :: CorrelationTracker) = size(x.system)
 Base.getindex(x :: CorrelationTracker, idx :: Vararg{Int}) = getindex(x.system, idx...)
-function Base.setindex!(x   :: CorrelationTracker{T},
-                        val :: T,
-                        idx :: Vararg{Int}) where T
+function Base.setindex!(x   :: CorrelationTracker,
+                        val,
+                        idx :: Vararg{Int})
     for corrfunc in (Directional.l2, Directional.s2)
         update_corrfunc!(x, val, corrfunc, idx)
     end
