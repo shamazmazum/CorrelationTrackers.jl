@@ -1,6 +1,7 @@
 module CorrelationTrackers
 using CorrelationFunctions
-using Base.Iterators: zip, countfrom, takewhile
+using Base.Iterators: zip, countfrom, takewhile, take
+using CircularArrays: CircularArray
 
 include("slices.jl")
 include("tracker.jl")
