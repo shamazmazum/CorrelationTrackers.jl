@@ -39,6 +39,13 @@ function update_corrfunc!(tracker  :: CorrelationTracker,
     end
 end
 
+"""
+    tracked_functions(x :: CorrelationTracker)
+
+Return a vector of tracked correlation functions.
+"""
+tracked_functions(x :: CorrelationTracker) = x.corrdata |> keys |> collect
+
 # Correlation functions interface
 # ! FIXME: It should be safe to return internal structures as long as
 # noone is going to modify them. I see no such scenario.
