@@ -2,31 +2,28 @@ struct CorrelationTracker{T, N} <: AbstractArray{T, N}
     system   :: Array{T, N}
     phase    :: Int
     periodic :: Bool
-    l2       :: Directional.CorrelationData
-    s2       :: Directional.CorrelationData
+    corrdata :: Dict{Function, Directional.CorrelationData}
 end
 
 function CorrelationTracker(system     :: AbstractArray,
                             phase      :: Int;
-                            periodic   :: Bool           = false,
-                            directions :: Vector{Symbol} = system |> Directional.default_directions,
+                            periodic   :: Bool             = false,
+                            directions :: Vector{Symbol}   = system |> Directional.default_directions,
+                            functions  :: Vector{Function} = [Directional.s2, Directional.l2],
                             kwargs...)
-    l2 = Directional.l2(system, phase;
-                        periodic   = periodic,
-                        directions = directions,
-                        kwargs...)
-    s2 = Directional.s2(system, phase;
-                        periodic   = periodic,
-                        directions = directions,
-                        kwargs...)
-    return CorrelationTracker(copy(system), phase, periodic, l2, s2)
+    corrdata = Dict(func => func(system, phase;
+                                 periodic   = periodic,
+                                 directions = directions,
+                                 kwargs...)
+                    for func in functions)
+    return CorrelationTracker(copy(system), phase, periodic, corrdata)
 end
 
 function update_corrfunc!(tracker  :: CorrelationTracker,
                           val,
                           corrfunc :: Function,
                           idx      :: Tuple)
-    corrdata = corrfunc(tracker)
+    corrdata = tracker.corrdata[corrfunc]
     len = length(corrdata)
     for (direction, _) in corrdata
         slice, slice_idx = get_slice(tracker.system,
@@ -45,8 +42,8 @@ end
 # Correlation functions interface
 # ! FIXME: It should be safe to return internal structures as long as
 # noone is going to modify them. I see no such scenario.
-Directional.l2(x :: CorrelationTracker) = x.l2
-Directional.s2(x :: CorrelationTracker) = x.s2
+Directional.l2(x :: CorrelationTracker) = x.corrdata[Directional.l2]
+Directional.s2(x :: CorrelationTracker) = x.corrdata[Directional.s2]
 
 # Array interface
 Base.size(x :: CorrelationTracker) = size(x.system)
@@ -54,7 +51,7 @@ Base.getindex(x :: CorrelationTracker, idx :: Vararg{Int}) = getindex(x.system, 
 function Base.setindex!(x   :: CorrelationTracker,
                         val,
                         idx :: Vararg{Int})
-    for corrfunc in (Directional.l2, Directional.s2)
+    for corrfunc in keys(x.corrdata)
         update_corrfunc!(x, val, corrfunc, idx)
     end
     x.system[idx...] = val
