@@ -1,4 +1,15 @@
-# Tracked data is a pair of a function and a phase
+"""
+    TrackedData{T}(func :: Function, phase :: T)
+
+Construct a pair of correlation function `func` and phase `phase`
+which must be tracked in `CorrelationTracker`.
+
+# Examples
+```jldoctest
+julia> TrackedData(Directional.l2, 1)
+TrackedData{Int64}(CorrelationFunctions.Directional.l2, 1)
+```
+"""
 struct TrackedData{T}
     func  :: Function
     phase :: T
@@ -10,17 +21,74 @@ struct CorrelationTracker{T, N} <: AbstractArray{T, N}
     corrdata :: Dict{TrackedData{T}, Directional.CorrelationData}
 end
 
+"""
+    CorrelationTracker{T, N}(system   :: AbstractArray{T, N}, 
+                             tracking :: Vector{TrackedData};
+                             periodic = false[, directions][, kwargs...])
+
+Create correlation functions tracker.
+
+Create correlation tracker for the array `system`. `tracking` is a
+vector of `TrackedData` structures which specify correlation functions
+you wish to track. `periodic` and `direction` have the same meaning as
+in the most functions in `CorrelationFunctions.jl` package. Additional
+arguments such as `len` may be passed in `kwargs`.
+
+Returned tracker supports interface of `AbstractArray` (e.g. you can
+perform element-wise read and write operations).
+
+# Examples
+```jldoctest
+julia> begin
+       system = rand(MersenneTwister(35), 0:1, (30, 10))
+       tracker = CorrelationTracker{Int,2}(system, [TrackedData(Directional.s2, 1)])
+       end
+30×10 CorrelationTracker{Int64, 2}:
+ 0  1  0  1  1  0  0  1  1  0
+ 1  1  1  0  0  0  0  0  1  1
+ 0  0  0  0  0  0  1  1  0  1
+ 1  1  1  0  1  1  1  0  1  0
+ 0  1  0  0  1  0  0  1  1  1
+ 0  0  0  0  0  0  1  0  1  1
+ 0  0  1  0  1  1  0  1  0  1
+ 1  0  0  1  0  0  1  0  1  0
+ 0  1  1  0  0  1  1  1  1  1
+ 0  0  1  1  1  1  0  0  0  0
+ 0  0  1  1  0  0  1  1  1  0
+ 0  1  0  0  0  1  0  0  1  0
+ 1  0  0  1  0  0  1  1  0  1
+ 0  1  0  1  0  0  1  1  1  0
+ 1  1  0  1  1  1  0  1  0  1
+ 1  1  1  0  0  0  0  1  0  1
+ 1  0  0  1  0  0  1  1  1  0
+ 0  0  0  1  0  0  0  1  1  0
+ 1  0  1  0  1  0  0  0  1  0
+ 1  0  0  1  0  0  0  0  0  1
+ 1  1  1  0  1  0  1  0  1  1
+ 0  1  0  1  1  0  0  1  0  1
+ 0  0  0  1  0  0  1  1  1  1
+ 0  0  1  1  1  1  0  1  1  0
+ 1  0  1  1  0  0  0  0  0  1
+ 1  1  0  1  0  1  1  0  1  0
+ 0  1  1  0  0  1  1  0  1  0
+ 0  1  0  0  1  0  0  1  0  0
+ 1  1  0  0  1  1  0  0  0  1
+ 0  0  1  1  0  1  1  1  1  0
+```
+"""
 function CorrelationTracker{T, N}(system     :: AbstractArray{T, N},
                                   tracking   :: Vector{TrackedData{T}};
                                   periodic   :: Bool = false,
                                   directions :: Vector{Symbol} =
                                       system |> Directional.default_directions,
                                   kwargs...) where {T, N}
-    corrdata = Dict(data => data.func(system, data.phase;
-                                      periodic   = periodic,
-                                      directions = directions,
-                                      kwargs...)
-                    for data in tracking)
+    corrdata = Dict{TrackedData{T},
+                    Directional.CorrelationData}(data =>
+        data.func(system, data.phase;
+                  periodic   = periodic,
+                  directions = directions,
+                  kwargs...)
+                                                 for data in tracking)
     return CorrelationTracker(copy(system), periodic, corrdata)
 end
 
@@ -56,8 +124,21 @@ tracked_data(x :: CorrelationTracker) = x.corrdata |> keys |> collect
 # Correlation functions interface
 # ! FIXME: It should be safe to return internal structures as long as
 # noone is going to modify them. I see no such scenario.
+@doc raw"""
+    Directional.l2(x :: CorrelationTracker, phase)
+
+Return $L_2^{\text{phase}}$ function for an underlying system of the
+tracker `x`.
+"""
 Directional.l2(x :: CorrelationTracker, phase) =
     x.corrdata[TrackedData(Directional.l2, phase)]
+
+@doc raw"""
+    Directional.s2(x :: CorrelationTracker, phase)
+
+Return $S_2^{\text{phase}}$ function for an underlying system of the
+tracker `x`.
+"""
 Directional.s2(x :: CorrelationTracker, phase) =
     x.corrdata[TrackedData(Directional.s2, phase)]
 
