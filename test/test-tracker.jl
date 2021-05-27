@@ -5,27 +5,30 @@ directions_3d = [:x, :y, :z,
                  :yz_main, :yz_anti,
                  :diag1, :diag2, :diag3, :diag4]
 
+test_data = [TrackedData(Directional.s2, 1),
+             TrackedData(Directional.l2, 1),
+             TrackedData(Directional.l2, 0)]
+
 function test_tracker!(array    :: AbstractArray,
                        periodic :: Bool,
                        directions)
-    for phase in (0, 1)
-        tracker = CorrelationTracker(array, phase;
-                                     periodic   = periodic,
-                                     directions = directions)
-        for n in 1:100
-            idx = [rand(1:d) for d in size(array)]
-            array[idx...]   = 1 - array[idx...]
-            tracker[idx...] = 1 - tracker[idx...]
-        end
+    n = ndims(array)
+    tracker = CorrelationTracker{Int, n}(array, test_data;
+                                         periodic   = periodic,
+                                         directions = directions)
+    for n in 1:100
+        idx = [rand(1:d) for d in size(array)]
+        array[idx...]   = 1 - array[idx...]
+        tracker[idx...] = 1 - tracker[idx...]
+    end
 
-        for func in (Directional.l2, Directional.s2)
-            expected = func(array, phase;
-                            periodic   = periodic,
-                            directions = directions)
-            got = func(tracker)
-            for (direction, data) in expected
-                @test data ≈ got[direction]
-            end
+    for data in test_data
+        expected = data.func(array, data.phase;
+                             periodic   = periodic,
+                             directions = directions)
+        got = data.func(tracker, data.phase)
+        for (direction, data) in expected
+            @test data ≈ got[direction]
         end
     end
 end
