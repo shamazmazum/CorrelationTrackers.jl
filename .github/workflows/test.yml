@@ -8,11 +8,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Checkout CorrelationFunctions.jl
-        uses: actions/checkout@v2
-        with:
-          repository: shamazmazum/CorrelationFunctions.jl
-          path: ~/CorrelationFunctions
       - name: Setup Julia
         uses: julia-actions/setup-julia@v1
         with:
@@ -27,12 +22,6 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
-      - name: Add local CorrelationFunctions.jl
-        run: |
-          import Pkg
-          Pkg.activate(".")
-          Pkg.add(path="~/CorrelationFunctions")
-        shell: julia {0}
       - name: Build package
         uses: julia-actions/julia-buildpkg@v1
       - name: Test package
