@@ -15,5 +15,4 @@ Also the documentation for the most recent release is available on
 
 ## Acknowledgements
 
-Correlation maps are written by Alexey Samarin. Special thanks to Kirill Gerke,
-Efim Lavrukhin and  Marina Karsanina for their support.
+Special thanks to Kirill Gerke, Efim Lavrukhin and  Marina Karsanina for their support.
