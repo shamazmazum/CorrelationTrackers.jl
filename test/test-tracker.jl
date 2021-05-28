@@ -23,10 +23,10 @@ function test_tracker!(array    :: AbstractArray,
     end
 
     for data in test_data
-        expected = data.func(array, data.phase;
-                             periodic   = periodic,
-                             directions = directions)
-        got = data.func(tracker, data.phase)
+        expected = data(array;
+                        periodic   = periodic,
+                        directions = directions)
+        got = data(tracker)
         for (direction, data) in expected
             @test data ≈ got[direction]
         end

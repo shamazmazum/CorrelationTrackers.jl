@@ -124,6 +124,12 @@ tracked_data(x :: CorrelationTracker) = x.corrdata |> keys |> collect
 # Correlation functions interface
 # ! FIXME: It should be safe to return internal structures as long as
 # noone is going to modify them. I see no such scenario.
+# Make TrackedData callable
+(data :: TrackedData{T})(tracker :: CorrelationTracker{T, N}) where {T, N} =
+    tracker.corrdata[data]
+(data :: TrackedData{T})(array :: AbstractArray{T, N}; kwargs...) where {T, N} =
+    data.func(array, data.phase; kwargs...)
+
 @doc raw"""
     Directional.l2(x :: CorrelationTracker, phase)
 
@@ -131,7 +137,7 @@ Return $L_2^{\text{phase}}$ function for an underlying system of the
 tracker `x`.
 """
 Directional.l2(x :: CorrelationTracker, phase) =
-    x.corrdata[TrackedData(Directional.l2, phase)]
+    TrackedData(Directional.l2, phase)(x)
 
 @doc raw"""
     Directional.s2(x :: CorrelationTracker, phase)
@@ -140,7 +146,7 @@ Return $S_2^{\text{phase}}$ function for an underlying system of the
 tracker `x`.
 """
 Directional.s2(x :: CorrelationTracker, phase) =
-    x.corrdata[TrackedData(Directional.s2, phase)]
+    TrackedData(Directional.s2, phase)(x)
 
 # Array interface
 Base.size(x :: CorrelationTracker) = size(x.system)
