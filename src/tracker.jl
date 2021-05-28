@@ -117,9 +117,10 @@ end
 """
     tracked_data(x :: CorrelationTracker)
 
-Return a vector of tracked correlation functions and phases.
+Return an iterator over `TrackedData` objects which are tracked by the
+tracker.
 """
-tracked_data(x :: CorrelationTracker) = x.corrdata |> keys |> collect
+tracked_data(x :: CorrelationTracker) = x.corrdata |> keys
 
 # Correlation functions interface
 # ! FIXME: It should be safe to return internal structures as long as
