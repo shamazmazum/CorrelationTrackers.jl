@@ -16,9 +16,10 @@ struct TrackedData{T}
 end
 
 struct CorrelationTracker{T, N} <: AbstractArray{T, N}
-    system   :: Array{T, N}
-    periodic :: Bool
-    corrdata :: Dict{TrackedData{T}, Directional.CorrelationData}
+    system     :: Array{T, N}
+    periodic   :: Bool
+    corrdata   :: Dict{TrackedData{T}, Directional.CorrelationData}
+    softupdate :: Bool
 end
 
 """
@@ -47,7 +48,7 @@ perform element-wise read and write operations).
 
 # Examples
 ```jldoctest
-julia> begin
+julia> let
        system = rand(MersenneTwister(35), 0:1, (30, 10))
        tracker = CorrelationTracker{Int,2}(system)
        end
@@ -97,7 +98,7 @@ function CorrelationTracker{T, N}(system     :: AbstractArray{T, N};
                   directions = directions,
                   kwargs...)
                                                  for data in tracking)
-    return CorrelationTracker(copy(system), periodic, corrdata)
+    return CorrelationTracker(copy(system), periodic, corrdata, false)
 end
 
 function update_corrfunc!(tracker  :: CorrelationTracker{T, N},
@@ -163,8 +164,43 @@ Base.getindex(x :: CorrelationTracker, idx :: Vararg{Int}) = getindex(x.system, 
 function Base.setindex!(x   :: CorrelationTracker,
                         val,
                         idx :: Vararg{Int})
+    if x.softupdate
+        error("Soft updates are read-only")
+    end
+
     for tracked_data in keys(x.corrdata)
         update_corrfunc!(x, tracked_data, val, idx)
     end
     x.system[idx...] = val
+end
+
+"""
+    softupdate(x :: CorrelationTracker, val, idx...)
+
+Perform soft update of correlation functions.
+
+This function is equivalent to `x[idx...] = val`, but instead of
+modifying x it returns another `CorrelationTracker` with updated
+correlation functions. The new tracker is read-only, i.e you cannot
+assign values to elements of an underlying array.
+
+# Examples
+```jldoctest
+julia> let
+       array = rand(0:1, (200, 200))
+       tracker = CorrelationTracker{Int, 2}(array)
+       su = softupdate(tracker, 1 - tracker[43, 102], 43, 102)
+       tracker[43, 102] = 1 - tracker[43, 102]
+       Directional.s2(tracker, 1)[:x] == Directional.s2(su, 1)[:x]
+       end
+true
+```
+"""
+function softupdate(x :: CorrelationTracker{T, N}, val, idx :: Vararg{Int}) where {T, N}
+    soft = CorrelationTracker{T, N}(x.system, x.periodic, deepcopy(x.corrdata), true)
+    for tracked_data in keys(x.corrdata)
+        update_corrfunc!(soft, tracked_data, val, idx)
+    end
+
+    return soft
 end

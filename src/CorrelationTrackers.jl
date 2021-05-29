@@ -10,6 +10,7 @@ export
     CorrelationTracker,
     TrackedData,
     tracked_data,
-    tracking_by_default
+    tracking_by_default,
+    softupdate
 
 end # module

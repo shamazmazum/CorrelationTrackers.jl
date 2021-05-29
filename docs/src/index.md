@@ -62,6 +62,7 @@ TrackedData
 tracking_by_default
 CorrelationTracker
 tracked_data
+softupdate
 ```
 
 ## Caveats
