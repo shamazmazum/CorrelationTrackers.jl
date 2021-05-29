@@ -6,6 +6,10 @@ using CircularArrays: CircularArray
 include("slices.jl")
 include("tracker.jl")
 
-export CorrelationTracker, tracked_data, TrackedData
+export
+    CorrelationTracker,
+    TrackedData,
+    tracked_data,
+    tracking_by_default
 
 end # module

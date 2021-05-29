@@ -22,8 +22,16 @@ struct CorrelationTracker{T, N} <: AbstractArray{T, N}
 end
 
 """
-    CorrelationTracker{T, N}(system   :: AbstractArray{T, N}, 
-                             tracking :: Vector{TrackedData};
+A vector of correlation functions and phases which are tracked by default.
+"""
+const tracking_by_default =
+    [TrackedData(Directional.s2, 1),
+     TrackedData(Directional.l2, 1),
+     TrackedData(Directional.l2, 0)]
+
+"""
+    CorrelationTracker{T, N}(system   :: AbstractArray{T, N}; 
+                             tracking = tracking_by_default,
                              periodic = false[, directions][, kwargs...])
 
 Create correlation functions tracker.
@@ -41,7 +49,7 @@ perform element-wise read and write operations).
 ```jldoctest
 julia> begin
        system = rand(MersenneTwister(35), 0:1, (30, 10))
-       tracker = CorrelationTracker{Int,2}(system, [TrackedData(Directional.s2, 1)])
+       tracker = CorrelationTracker{Int,2}(system)
        end
 30×10 CorrelationTracker{Int64, 2}:
  0  1  0  1  1  0  0  1  1  0
@@ -76,10 +84,10 @@ julia> begin
  0  0  1  1  0  1  1  1  1  0
 ```
 """
-function CorrelationTracker{T, N}(system     :: AbstractArray{T, N},
-                                  tracking   :: Vector{TrackedData{T}};
-                                  periodic   :: Bool = false,
-                                  directions :: Vector{Symbol} =
+function CorrelationTracker{T, N}(system     :: AbstractArray{T, N};
+                                  tracking   :: Vector{TrackedData{T}} = tracking_by_default,
+                                  periodic   :: Bool                   = false,
+                                  directions :: Vector{Symbol}         =
                                       system |> Directional.default_directions,
                                   kwargs...) where {T, N}
     corrdata = Dict{TrackedData{T},

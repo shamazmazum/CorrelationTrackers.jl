@@ -35,10 +35,11 @@ using CorrelationTrackers
 system = rand(MersenneTwister(348), 0:1, (20, 30))
 
 # Suppose we want to track $S_2^1(r)$ and $L_2^0(r)$.
-tracked = [TrackedData(Directional.s2, 1), TrackedData(Directional.l2, 1)]
+tracking = [TrackedData(Directional.s2, 1), 
+            TrackedData(Directional.l2, 1)]
 
 # Create the tracker. It may require some time if your system is big.
-tracker = CorrelationTracker{Int, 2}(system, tracked)
+tracker = CorrelationTracker{Int, 2}(system; tracking = tracking)
 
 # Do some phase swapping in both the original system and the tracker
 system[12, 25]  = 1 - system[12, 25]
@@ -58,6 +59,7 @@ pretty_table(stdout, hcat(Directional.s2(system,  1) |> mean,
 
 ```@docs
 TrackedData
+tracking_by_default
 CorrelationTracker
 tracked_data
 ```
