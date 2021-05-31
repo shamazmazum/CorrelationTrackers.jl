@@ -22,17 +22,21 @@ struct CorrelationTracker{T, N} <: AbstractArray{T, N}
     softupdate :: Bool
 end
 
+@doc raw"""
+    default_trackers(T)
+
+Construct a vector of correlation functions which are tracked by
+default (that is $S_2^1(x)$, $L_2^1(x)$ and $L_2^0(x)$). `T` is the
+type of `x`.
 """
-A vector of correlation functions and phases which are tracked by default.
-"""
-const tracking_by_default =
-    [TrackedData(Directional.s2, 1),
-     TrackedData(Directional.l2, 1),
-     TrackedData(Directional.l2, 0)]
+default_trackers(T :: Type) = 
+    [TrackedData(Directional.s2, T(1)),
+     TrackedData(Directional.l2, T(1)),
+     TrackedData(Directional.l2, T(0))]
 
 """
     CorrelationTracker{T, N}(system   :: AbstractArray{T, N}; 
-                             tracking = tracking_by_default,
+                             tracking = default_trackers(T),
                              periodic = false[, directions][, kwargs...])
 
 Create correlation functions tracker.
@@ -86,7 +90,7 @@ julia> let
 ```
 """
 function CorrelationTracker{T, N}(system     :: AbstractArray{T, N};
-                                  tracking   :: Vector{TrackedData{T}} = tracking_by_default,
+                                  tracking   :: Vector{TrackedData{T}} = default_trackers(T),
                                   periodic   :: Bool                   = false,
                                   directions :: Vector{Symbol}         =
                                       system |> Directional.default_directions,

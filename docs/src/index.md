@@ -59,7 +59,7 @@ pretty_table(stdout, hcat(Directional.s2(system,  1) |> mean,
 
 ```@docs
 TrackedData
-tracking_by_default
+default_trackers
 CorrelationTracker
 tracked_data
 softupdate
