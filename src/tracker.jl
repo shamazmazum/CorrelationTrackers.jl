@@ -20,6 +20,10 @@ struct CorrelationTracker{T, N} <: AbstractArray{T, N}
     periodic   :: Bool
     corrdata   :: Dict{TrackedData{T}, Directional.CorrelationData}
     softupdate :: Bool
+
+    # For quick access
+    corrlen    :: Int
+    directions :: Vector{Symbol}
 end
 
 @doc raw"""
@@ -102,7 +106,10 @@ function CorrelationTracker{T, N}(system     :: AbstractArray{T, N};
                   directions = directions,
                   kwargs...)
                                                  for data in tracking)
-    return CorrelationTracker(copy(system), periodic, corrdata, false)
+
+    len = length(first(corrdata)[2])
+    return CorrelationTracker(copy(system), periodic, corrdata,
+                              false, len, directions)
 end
 
 function update_corrfunc!(tracker  :: CorrelationTracker{T, N},
@@ -134,6 +141,34 @@ Return an iterator over `TrackedData` objects which are tracked by the
 tracker.
 """
 tracked_data(x :: CorrelationTracker) = x.corrdata |> keys
+
+"""
+    tracked_length(x :: CorrelationTracker)
+
+Return maximal tracked correlation length
+
+# Examples
+```jldoctest
+julia> tracked_length(CorrelationTracker{Int,2}(rand(0:1, (50, 100))))
+25
+```
+"""
+tracked_length(x :: CorrelationTracker) = x.corrlen
+
+"""
+    tracked_directions(x :: CorrelationTracker)
+
+Return directions along which correlation functions are tracked.
+
+# Examples
+```jldoctest
+julia> tracked_directions(CorrelationTracker{Int,2}(rand(0:1, (50, 100))))
+2-element Vector{Symbol}:
+ :x
+ :y
+```
+"""
+tracked_directions(x :: CorrelationTracker) = x.directions
 
 # Correlation functions interface
 # ! FIXME: It should be safe to return internal structures as long as

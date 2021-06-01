@@ -9,8 +9,11 @@ include("tracker.jl")
 export
     CorrelationTracker,
     TrackedData,
-    tracked_data,
     default_trackers,
-    softupdate
+    softupdate,
+
+    tracked_data,
+    tracked_length,
+    tracked_directions
 
 end # module

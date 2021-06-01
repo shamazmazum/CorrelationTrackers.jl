@@ -62,6 +62,8 @@ TrackedData
 default_trackers
 CorrelationTracker
 tracked_data
+tracked_length
+tracked_directions
 softupdate
 ```
 
