@@ -30,9 +30,9 @@ default (that is $S_2^1(x)$, $L_2^1(x)$ and $L_2^0(x)$). `T` is the
 type of `x`.
 """
 default_trackers(T :: Type) = 
-    [TrackedData(Directional.s2, T(1)),
-     TrackedData(Directional.l2, T(1)),
-     TrackedData(Directional.l2, T(0))]
+    [TrackedData{T}(Directional.s2, 1),
+     TrackedData{T}(Directional.l2, 1),
+     TrackedData{T}(Directional.l2, 0)]
 
 """
     CorrelationTracker{T, N}(system   :: AbstractArray{T, N}; 
@@ -150,8 +150,8 @@ tracked_data(x :: CorrelationTracker) = x.corrdata |> keys
 Return $L_2^{\text{phase}}$ function for an underlying system of the
 tracker `x`.
 """
-Directional.l2(x :: CorrelationTracker, phase) =
-    TrackedData(Directional.l2, phase)(x)
+Directional.l2(x :: CorrelationTracker{T, N}, phase) where {T, N} =
+    TrackedData{T}(Directional.l2, phase)(x)
 
 @doc raw"""
     Directional.s2(x :: CorrelationTracker, phase)
@@ -159,8 +159,8 @@ Directional.l2(x :: CorrelationTracker, phase) =
 Return $S_2^{\text{phase}}$ function for an underlying system of the
 tracker `x`.
 """
-Directional.s2(x :: CorrelationTracker, phase) =
-    TrackedData(Directional.s2, phase)(x)
+Directional.s2(x :: CorrelationTracker{T, N}, phase) where {T, N} =
+    TrackedData{T}(Directional.s2, phase)(x)
 
 # Array interface
 Base.size(x :: CorrelationTracker) = size(x.system)
