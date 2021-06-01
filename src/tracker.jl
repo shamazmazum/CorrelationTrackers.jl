@@ -34,7 +34,7 @@ default (that is $S_2^1(x)$, $L_2^1(x)$ and $L_2^0(x)$). `T` is the
 type of `x`.
 """
 default_trackers(T :: Type) = 
-    [TrackedData{T}(Directional.s2, 1),
+    [TrackedData{T}(Directional.s2, 0),
      TrackedData{T}(Directional.l2, 1),
      TrackedData{T}(Directional.l2, 0)]
 
