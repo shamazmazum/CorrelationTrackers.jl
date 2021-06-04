@@ -19,11 +19,12 @@ struct CorrelationTracker{T, N} <: AbstractArray{T, N}
     system     :: Array{T, N}
     periodic   :: Bool
     corrdata   :: Dict{TrackedData{T}, Directional.CorrelationData}
-    softupdate :: Bool
 
     # For quick access
     corrlen    :: Int
     directions :: Vector{Symbol}
+
+    softupdate :: Bool
 end
 
 @doc raw"""
@@ -109,7 +110,7 @@ function CorrelationTracker{T, N}(system     :: AbstractArray{T, N};
 
     len = length(first(corrdata)[2])
     return CorrelationTracker(copy(system), periodic, corrdata,
-                              false, len, directions)
+                              len, directions, false)
 end
 
 function update_corrfunc!(tracker  :: CorrelationTracker{T, N},
@@ -236,7 +237,12 @@ true
 ```
 """
 function softupdate(x :: CorrelationTracker{T, N}, val, idx :: Vararg{Int}) where {T, N}
-    soft = CorrelationTracker{T, N}(x.system, x.periodic, deepcopy(x.corrdata), true)
+    soft = CorrelationTracker{T, N}(x.system,
+                                    x.periodic,
+                                    deepcopy(x.corrdata),
+                                    x.corrlen,
+                                    x.directions,
+                                    true)
     for tracked_data in keys(x.corrdata)
         update_corrfunc!(soft, tracked_data, val, idx)
     end
