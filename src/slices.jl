@@ -39,22 +39,22 @@ end
 # 2D
 @def_slicer 2 :x let (x, y) = idx; a[:, y], x end
 @def_slicer 2 :y let (x, y) = idx; a[x, :], y end
-@def_slicer 2 :xy_main get_slice(a, periodic, idx, (true, true))
-@def_slicer 2 :xy_anti get_slice(a, periodic, idx, (false, true))
+@def_slicer 2 :xy get_slice(a, periodic, idx, (true, true))
+@def_slicer 2 :yx get_slice(a, periodic, idx, (false, true))
 
 # 3D
 @def_slicer 3 :x let (x, y, z) = idx; a[:, y, z], x end
 @def_slicer 3 :y let (x, y, z) = idx; a[x, :, z], y end
 @def_slicer 3 :z let (x, y, z) = idx; a[x, y, :], z end
 
-@def_slicer 3 :xy_main let (x, y, z) = idx; get_slice(a[:,:,z], periodic, (x, y), :xy_main) end
-@def_slicer 3 :xy_anti let (x, y, z) = idx; get_slice(a[:,:,z], periodic, (x, y), :xy_anti) end
-@def_slicer 3 :xz_main let (x, y, z) = idx; get_slice(a[:,y,:], periodic, (x, z), :xy_main) end
-@def_slicer 3 :xz_anti let (x, y, z) = idx; get_slice(a[:,y,:], periodic, (x, z), :xy_anti) end
-@def_slicer 3 :yz_main let (x, y, z) = idx; get_slice(a[x,:,:], periodic, (y, z), :xy_main) end
-@def_slicer 3 :yz_anti let (x, y, z) = idx; get_slice(a[x,:,:], periodic, (y, z), :xy_anti) end
+@def_slicer 3 :xy let (x, y, z) = idx; get_slice(a[:,:,z], periodic, (x, y), :xy) end
+@def_slicer 3 :yx let (x, y, z) = idx; get_slice(a[:,:,z], periodic, (x, y), :yx) end
+@def_slicer 3 :xz let (x, y, z) = idx; get_slice(a[:,y,:], periodic, (x, z), :xy) end
+@def_slicer 3 :zx let (x, y, z) = idx; get_slice(a[:,y,:], periodic, (x, z), :yx) end
+@def_slicer 3 :yz let (x, y, z) = idx; get_slice(a[x,:,:], periodic, (y, z), :xy) end
+@def_slicer 3 :zy let (x, y, z) = idx; get_slice(a[x,:,:], periodic, (y, z), :yx) end
 
-@def_slicer 3 :diag1 get_slice(a, periodic, idx, (true,  true,  true))
-@def_slicer 3 :diag2 get_slice(a, periodic, idx, (false, true,  true))
-@def_slicer 3 :diag3 get_slice(a, periodic, idx, (true,  false, true))
-@def_slicer 3 :diag4 get_slice(a, periodic, idx, (true,  true,  false))
+@def_slicer 3 :xyz get_slice(a, periodic, idx, (true,  true,  true))
+@def_slicer 3 :yxz get_slice(a, periodic, idx, (false, true,  true))
+@def_slicer 3 :xzy get_slice(a, periodic, idx, (true,  false, true))
+@def_slicer 3 :zyx get_slice(a, periodic, idx, (true,  true,  false))

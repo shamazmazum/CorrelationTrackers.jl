@@ -1,9 +1,9 @@
-directions_2d = [:x, :y, :xy_main, :xy_anti]
+directions_2d = [:x, :y, :xy, :yx]
 directions_3d = [:x, :y, :z,
-                 :xy_main, :xy_anti,
-                 :xz_main, :xz_anti,
-                 :yz_main, :yz_anti,
-                 :diag1, :diag2, :diag3, :diag4]
+                 :xy, :yx,
+                 :xz, :zx,
+                 :yz, :zy,
+                 :xyz, :yxz, :xzy, :zyx]
 
 function test_tracker!(array    :: AbstractArray,
                        periodic :: Bool,
