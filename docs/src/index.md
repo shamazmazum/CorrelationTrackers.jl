@@ -39,7 +39,7 @@ tracking = [TrackedData(Directional.s2, 1),
             TrackedData(Directional.l2, 1)]
 
 # Create the tracker. It may require some time if your system is big.
-tracker = CorrelationTracker{Int, 2}(system; tracking = tracking)
+tracker = CorrelationTracker(system; tracking = tracking)
 
 # Do some phase swapping in both the original system and the tracker
 system[12, 25]  = 1 - system[12, 25]

@@ -9,9 +9,9 @@ function test_tracker!(array    :: AbstractArray,
                        periodic :: Bool,
                        directions)
     n = ndims(array)
-    tracker = CorrelationTracker{Int, n}(array;
-                                         periodic   = periodic,
-                                         directions = directions)
+    tracker = CorrelationTracker(array;
+                                 periodic   = periodic,
+                                 directions = directions)
     for n in 1:100
         idx = [rand(1:d) for d in size(array)]
         array[idx...]   = 1 - array[idx...]

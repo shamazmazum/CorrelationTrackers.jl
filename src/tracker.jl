@@ -15,8 +15,8 @@ struct TrackedData{T}
     phase :: T
 end
 
-struct CorrelationTracker{T, N} <: AbstractArray{T, N}
-    system     :: Array{T, N}
+struct CorrelationTracker{T, N, A} <: AbstractArray{T, N}
+    system     :: A
     periodic   :: Bool
     corrdata   :: Dict{TrackedData{T}, Directional.CorrelationData}
 
@@ -94,23 +94,22 @@ julia> let
  0  0  1  1  0  1  1  1  1  0
 ```
 """
-function CorrelationTracker{T, N}(system     :: AbstractArray{T, N};
-                                  tracking   :: Vector{TrackedData{T}} = default_trackers(T),
-                                  periodic   :: Bool                   = false,
-                                  directions :: Vector{Symbol}         =
-                                      system |> Directional.default_directions,
-                                  kwargs...) where {T, N}
+function CorrelationTracker(system     :: AbstractArray{T, N};
+                            tracking   :: Vector{TrackedData{T}} = default_trackers(T),
+                            periodic   :: Bool                   = false,
+                            directions :: Vector{Symbol}         =
+                            system |> Directional.default_directions,
+                            kwargs...) where {T, N}
     corrdata = Dict{TrackedData{T},
                     Directional.CorrelationData}(data =>
-        data.func(system, data.phase;
-                  periodic   = periodic,
-                  directions = directions,
-                  kwargs...)
+                                                 data.func(system, data.phase;
+                                                           periodic   = periodic,
+                                                           directions = directions,
+                                                           kwargs...)
                                                  for data in tracking)
-
     len = length(first(corrdata)[2])
-    return CorrelationTracker(copy(system), periodic, corrdata,
-                              len, directions, false)
+    return CorrelationTracker{T, N, typeof(system)}(
+        copy(system), periodic, corrdata, len, directions, false)
 end
 
 function update_corrfunc!(tracker  :: CorrelationTracker{T, N},
