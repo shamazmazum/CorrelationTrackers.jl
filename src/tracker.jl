@@ -40,9 +40,9 @@ default_trackers(T :: Type) =
      TrackedData{T}(Directional.l2, 0)]
 
 """
-    CorrelationTracker{T, N}(system   :: AbstractArray{T, N}; 
-                             tracking = default_trackers(T),
-                             periodic = false[, directions][, kwargs...])
+    CorrelationTracker(system   :: AbstractArray{T, N}; 
+                       tracking = default_trackers(T),
+                       periodic = false[, directions][, kwargs...])
 
 Create correlation functions tracker.
 
@@ -59,9 +59,9 @@ perform element-wise read and write operations).
 ```jldoctest
 julia> let
        system = rand(MersenneTwister(35), 0:1, (30, 10))
-       tracker = CorrelationTracker{Int,2}(system)
+       tracker = CorrelationTracker(system)
        end
-30×10 CorrelationTracker{Int64, 2}:
+30×10 CorrelationTracker{Int64, 2, Matrix{Int64}}:
  0  1  0  1  1  0  0  1  1  0
  1  1  1  0  0  0  0  0  1  1
  0  0  0  0  0  0  1  1  0  1
