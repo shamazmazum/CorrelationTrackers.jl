@@ -23,8 +23,6 @@ struct CorrelationTracker{T, N, A} <: AbstractArray{T, N}
     # For quick access
     corrlen    :: Int
     directions :: Vector{Symbol}
-
-    softupdate :: Bool
 end
 
 @doc raw"""
@@ -109,7 +107,7 @@ function CorrelationTracker(system     :: AbstractArray{T, N};
                                                  for data in tracking)
     len = length(first(corrdata)[2])
     return CorrelationTracker{T, N, typeof(system)}(
-        copy(system), periodic, corrdata, len, directions, false)
+        copy(system), periodic, corrdata, len, directions)
 end
 
 function update_corrfunc!(tracker  :: CorrelationTracker{T, N},
@@ -203,48 +201,8 @@ Base.getindex(x :: CorrelationTracker, idx :: Vararg{Int}) = getindex(x.system, 
 function Base.setindex!(x   :: CorrelationTracker,
                         val,
                         idx :: Vararg{Int})
-    if x.softupdate
-        error("Soft updates are read-only")
-    end
-
     for tracked_data in keys(x.corrdata)
         update_corrfunc!(x, tracked_data, val, idx)
     end
     x.system[idx...] = val
-end
-
-"""
-    softupdate(x :: CorrelationTracker, val, idx...)
-
-Perform soft update of correlation functions.
-
-This function is equivalent to `x[idx...] = val`, but instead of
-modifying x it returns another `CorrelationTracker` with updated
-correlation functions. The new tracker is read-only, i.e you cannot
-assign values to elements of an underlying array.
-
-# Examples
-```jldoctest
-julia> let
-       array = rand(0:1, (200, 200))
-       tracker = CorrelationTracker{Int, 2}(array)
-       su = softupdate(tracker, 1 - tracker[43, 102], 43, 102)
-       tracker[43, 102] = 1 - tracker[43, 102]
-       Directional.s2(tracker, 1)[:x] == Directional.s2(su, 1)[:x]
-       end
-true
-```
-"""
-function softupdate(x :: CorrelationTracker{T, N}, val, idx :: Vararg{Int}) where {T, N}
-    soft = CorrelationTracker{T, N}(x.system,
-                                    x.periodic,
-                                    deepcopy(x.corrdata),
-                                    x.corrlen,
-                                    x.directions,
-                                    true)
-    for tracked_data in keys(x.corrdata)
-        update_corrfunc!(soft, tracked_data, val, idx)
-    end
-
-    return soft
 end

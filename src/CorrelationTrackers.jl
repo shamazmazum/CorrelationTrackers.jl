@@ -10,7 +10,6 @@ export
     CorrelationTracker,
     TrackedData,
     default_trackers,
-    softupdate,
 
     tracked_data,
     tracked_length,
