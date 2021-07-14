@@ -110,10 +110,21 @@ function CorrelationTracker(system     :: AbstractArray{T, N};
         copy(system), periodic, corrdata, len, directions)
 end
 
-function update_corrfunc_pre!(tracker  :: CorrelationTracker{T, N},
-                              data     :: TrackedData{T},
-                              val,
-                              idx      :: Tuple) where {T, N}
+# Looks ugly
+abstract type Updater end
+struct L2Updater <: Updater end
+
+function make_updater(fn :: Function)
+    if fn === Directional.s2 || fn === Directional.l2
+        return L2Updater()
+    end
+end
+
+function update_pre!(tracker  :: CorrelationTracker{T, N},
+                     data     :: TrackedData{T},
+                     _        :: L2Updater,
+                     val,
+                     idx      :: Tuple) where {T, N}
     corrdata = tracker.corrdata[data]
     corrfunc = data.func
     phase    = data.phase
@@ -131,10 +142,11 @@ function update_corrfunc_pre!(tracker  :: CorrelationTracker{T, N},
     return nothing
 end
 
-function update_corrfunc_post!(tracker  :: CorrelationTracker{T, N},
-                               data     :: TrackedData{T},
-                               val,
-                               idx      :: Tuple) where {T, N}
+function update_post!(tracker  :: CorrelationTracker{T, N},
+                      data     :: TrackedData{T},
+                      _        :: L2Updater,
+                      val,
+                      idx      :: Tuple) where {T, N}
     corrdata = tracker.corrdata[data]
     corrfunc = data.func
     phase    = data.phase
@@ -151,6 +163,18 @@ function update_corrfunc_post!(tracker  :: CorrelationTracker{T, N},
 
     return nothing
 end
+
+update_pre!(tracker  :: CorrelationTracker{T, N},
+            data     :: TrackedData{T},
+            val,
+            idx      :: Tuple) where {T, N} =
+                update_pre!(tracker, data, make_updater(data.func), val, idx)
+
+update_post!(tracker  :: CorrelationTracker{T, N},
+             data     :: TrackedData{T},
+             val,
+             idx      :: Tuple) where {T, N} =
+                 update_post!(tracker, data, make_updater(data.func), val, idx)
 
 """
     tracked_data(x :: CorrelationTracker)
@@ -223,7 +247,7 @@ function Base.setindex!(x   :: CorrelationTracker,
                         idx :: Vararg{Int})
     # Do everything we can before updating the value in the underlying array
     for tracked_data in keys(x.corrdata)
-        update_corrfunc_pre!(x, tracked_data, val, idx)
+        update_pre!(x, tracked_data, val, idx)
     end
 
     # Change the value
@@ -231,7 +255,7 @@ function Base.setindex!(x   :: CorrelationTracker,
 
     # Do everything else
     for tracked_data in keys(x.corrdata)
-        update_corrfunc_post!(x, tracked_data, val, idx)
+        update_post!(x, tracked_data, val, idx)
     end
 
     return x
