@@ -119,10 +119,13 @@ end
 # Looks ugly
 abstract type Updater end
 struct L2Updater <: Updater end
+struct SSUpdater <: Updater end
 
 function make_updater(fn :: Function)
     if fn === Directional.s2 || fn === Directional.l2
         return L2Updater()
+    elseif fn === Directional.surfsurf
+        return SSUpdater()
     end
 end
 
@@ -137,12 +140,81 @@ function update_pre!(tracker  :: CorrelationTracker{T, N},
     len = length(corrdata)
 
     for direction in Directional.directions(corrdata)
-        slice, slice_idx = get_slice(tracker.system,
-                                     tracker.periodic,
-                                     idx, direction)
+        slice, _ = get_slice(tracker.system,
+                             tracker.periodic,
+                             idx, direction)
         scorr = corrfunc(slice, phase;
                          periodic = tracker.periodic, len = len)
         corrdata.success[direction] .-= scorr.success[:x]
+    end
+
+    return nothing
+end
+
+function update_pre!(tracker  :: CorrelationTracker{T, N},
+                     data     :: TrackedData{T},
+                     _        :: SSUpdater,
+                     val,
+                     index    :: Tuple) where {T, N}
+    index = CartesianIndex(index)
+    corrdata = tracker.corrdata[data]
+    corrfunc = data.func
+    grad     = tracker.grad
+    phase    = data.phase
+    len      = length(corrdata)
+
+    indices = CartesianIndices(grad)
+    fidx, lidx = first(indices), last(indices)
+
+    for direction in Directional.directions(corrdata)
+        u = axial_index(grad, direction)
+        for idx in max(index - u, fidx):min(index + u, lidx)
+            slice, _ = get_slice(grad,
+                                 tracker.periodic,
+                                 Tuple(idx), direction)
+            s2 = Directional.s2(slice, Directional.SeparableIndicator(identity))
+            corrdata.success[direction] .-= s2.success[:x]
+        end
+    end
+
+    return nothing
+end
+
+function update_post!(tracker  :: CorrelationTracker{T, N},
+                      data     :: TrackedData{T},
+                      _        :: SSUpdater,
+                      val,
+                      index    :: Tuple) where {T, N}
+    index = CartesianIndex(index)
+    corrdata = tracker.corrdata[data]
+    corrfunc = data.func
+    grad     = tracker.grad
+    phase    = data.phase
+    len      = length(corrdata)
+
+    indices = CartesianIndices(grad)
+    fidx, lidx = first(indices), last(indices)
+    uidx = oneunit(index)
+    gradstart = max(index - 2uidx, fidx)
+    gradstop  = min(index + 2uidx, lidx)
+    subsys = tracker.system[gradstart:gradstop]
+    subgrad = gradient(subsys)
+
+    index_subgrad = index - gradstart + uidx
+    indices_subgrad  = CartesianIndices(subgrad)
+    fidx2, lidx2 = first(indices_subgrad), last(indices_subgrad)
+    grad[max(index - uidx, fidx):min(index + uidx, lidx)] .=
+        subgrad[max(index_subgrad - uidx, fidx2):min(index_subgrad + uidx, lidx2)]
+
+    for direction in Directional.directions(corrdata)
+        u = axial_index(grad, direction)
+        for idx in max(index - u, fidx):min(index + u, lidx)
+            slice, _ = get_slice(grad,
+                                 tracker.periodic,
+                                 Tuple(idx), direction)
+            s2 = Directional.s2(slice, Directional.SeparableIndicator(identity))
+            corrdata.success[direction] .+= s2.success[:x]
+        end
     end
 
     return nothing
@@ -159,9 +231,9 @@ function update_post!(tracker  :: CorrelationTracker{T, N},
     len = length(corrdata)
 
     for direction in Directional.directions(corrdata)
-        slice, slice_idx = get_slice(tracker.system,
-                                     tracker.periodic,
-                                     idx, direction)
+        slice, _ = get_slice(tracker.system,
+                             tracker.periodic,
+                             idx, direction)
         scorr = corrfunc(slice, phase;
                          periodic = tracker.periodic, len = len)
         corrdata.success[direction] .+= scorr.success[:x]
@@ -244,6 +316,15 @@ tracker `x`.
 """
 Directional.s2(x :: CorrelationTracker{T, N}, phase) where {T, N} =
     TrackedData{T}(Directional.s2, phase)(x)
+
+@doc raw"""
+    Directional.surfsurf(x :: CorrelationTracker, phase)
+
+Return $F_{ss}_2^{\text{phase}}$ function for an underlying system of the
+tracker `x`.
+"""
+Directional.surfsurf(x :: CorrelationTracker{T, N}, phase) where {T, N} =
+    TrackedData{T}(Directional.surfsurf, phase)(x)
 
 # Array interface
 Base.size(x :: CorrelationTracker) = size(x.system)

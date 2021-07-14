@@ -58,3 +58,9 @@ end
 @def_slicer 3 :yxz get_slice(a, periodic, idx, (false, true,  true))
 @def_slicer 3 :xzy get_slice(a, periodic, idx, (true,  false, true))
 @def_slicer 3 :zyx get_slice(a, periodic, idx, (true,  true,  false))
+
+axial_index(a :: AbstractArray, s :: Symbol) = axial_index(a, Val(s))
+axial_index(:: AbstractArray{T, 2}, :: Val{:x}) where T =
+    CartesianIndex(0, 1)
+axial_index(:: AbstractArray{T, 2}, :: Val{:y}) where T =
+    CartesianIndex(1, 0)
