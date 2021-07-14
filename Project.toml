@@ -12,6 +12,7 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 [compat]
 CircularArrays = "1.2"
 CorrelationFunctions = "0.3.0"
+Images = "0.24"
 julia = "^1.0"
 
 [extras]
