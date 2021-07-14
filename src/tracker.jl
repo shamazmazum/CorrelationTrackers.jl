@@ -110,26 +110,46 @@ function CorrelationTracker(system     :: AbstractArray{T, N};
         copy(system), periodic, corrdata, len, directions)
 end
 
-function update_corrfunc!(tracker  :: CorrelationTracker{T, N},
-                          data     :: TrackedData{T},
-                          val,
-                          idx      :: Tuple) where {T, N}
+function update_corrfunc_pre!(tracker  :: CorrelationTracker{T, N},
+                              data     :: TrackedData{T},
+                              val,
+                              idx      :: Tuple) where {T, N}
     corrdata = tracker.corrdata[data]
     corrfunc = data.func
     phase    = data.phase
     len = length(corrdata)
+
     for direction in Directional.directions(corrdata)
         slice, slice_idx = get_slice(tracker.system,
                                      tracker.periodic,
                                      idx, direction)
-        oldcorr = corrfunc(slice, phase;
-                           periodic = tracker.periodic, len = len)
-        slice[slice_idx] = val
-        newcorr = corrfunc(slice, phase;
-                           periodic = tracker.periodic, len = len)
-        diff = newcorr.success[:x] .- oldcorr.success[:x]
-        corrdata.success[direction] .+= diff
+        scorr = corrfunc(slice, phase;
+                         periodic = tracker.periodic, len = len)
+        corrdata.success[direction] .-= scorr.success[:x]
     end
+
+    return nothing
+end
+
+function update_corrfunc_post!(tracker  :: CorrelationTracker{T, N},
+                               data     :: TrackedData{T},
+                               val,
+                               idx      :: Tuple) where {T, N}
+    corrdata = tracker.corrdata[data]
+    corrfunc = data.func
+    phase    = data.phase
+    len = length(corrdata)
+
+    for direction in Directional.directions(corrdata)
+        slice, slice_idx = get_slice(tracker.system,
+                                     tracker.periodic,
+                                     idx, direction)
+        scorr = corrfunc(slice, phase;
+                         periodic = tracker.periodic, len = len)
+        corrdata.success[direction] .+= scorr.success[:x]
+    end
+
+    return nothing
 end
 
 """
@@ -201,8 +221,18 @@ Base.getindex(x :: CorrelationTracker, idx :: Vararg{Int}) = getindex(x.system, 
 function Base.setindex!(x   :: CorrelationTracker,
                         val,
                         idx :: Vararg{Int})
+    # Do everything we can before updating the value in the underlying array
     for tracked_data in keys(x.corrdata)
-        update_corrfunc!(x, tracked_data, val, idx)
+        update_corrfunc_pre!(x, tracked_data, val, idx)
     end
+
+    # Change the value
     x.system[idx...] = val
+
+    # Do everything else
+    for tracked_data in keys(x.corrdata)
+        update_corrfunc_post!(x, tracked_data, val, idx)
+    end
+
+    return x
 end
