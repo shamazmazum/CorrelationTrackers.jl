@@ -1,3 +1,8 @@
+function gradient(array :: AbstractArray)
+    deltas = imgradients(array, KernelFactors.sobel)
+    return map((x...) -> norm(x), deltas...)
+end
+
 """
     TrackedData{T}(func :: Function, phase :: T)
 
@@ -19,6 +24,7 @@ struct CorrelationTracker{T, N, A} <: AbstractArray{T, N}
     system     :: A
     periodic   :: Bool
     corrdata   :: Dict{TrackedData{T}, Directional.CorrelationData}
+    grad       :: Array{Float64, N}
 
     # For quick access
     corrlen    :: Int
@@ -107,7 +113,7 @@ function CorrelationTracker(system     :: AbstractArray{T, N};
                                                  for data in tracking)
     len = length(first(corrdata)[2])
     return CorrelationTracker{T, N, typeof(system)}(
-        copy(system), periodic, corrdata, len, directions)
+        copy(system), periodic, corrdata, gradient(system), len, directions)
 end
 
 # Looks ugly
