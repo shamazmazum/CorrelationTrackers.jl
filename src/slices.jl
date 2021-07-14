@@ -64,3 +64,10 @@ axial_index(:: AbstractArray{T, 2}, :: Val{:x}) where T =
     CartesianIndex(0, 1)
 axial_index(:: AbstractArray{T, 2}, :: Val{:y}) where T =
     CartesianIndex(1, 0)
+
+axial_index(:: AbstractArray{T, 3}, :: Val{:x}) where T =
+    CartesianIndex(0, 1, 1)
+axial_index(:: AbstractArray{T, 3}, :: Val{:y}) where T =
+    CartesianIndex(1, 0, 1)
+axial_index(:: AbstractArray{T, 3}, :: Val{:z}) where T =
+    CartesianIndex(1, 1, 0)

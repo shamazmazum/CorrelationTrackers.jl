@@ -1,21 +1,38 @@
-directions_2d = [:x, :y, :xy, :yx]
-directions_3d = [:x, :y, :z,
-                 :xy, :yx,
-                 :xz, :zx,
-                 :yz, :zy,
-                 :xyz, :yxz, :xzy, :zyx]
+const directions_2d = [
+    :x, :y, :xy, :yx
+]
 
-function test_tracker!(array    :: AbstractArray,
+const directions_3d = [
+    :x, :y, :z,
+    :xy, :yx,
+    :xz, :zx,
+    :yz, :zy,
+    :xyz, :yxz, :xzy, :zyx
+]
+
+const trackers_all = [
+    TrackedData(Directional.s2, 0),
+    TrackedData(Directional.l2, 0),
+    TrackedData(Directional.l2, 1),
+]
+
+const trackers_axial = [
+    TrackedData(Directional.surfsurf, 0)
+]
+
+function test_tracker!(array    :: AbstractArray{T},
+                       trackers :: Vector{TrackedData{T}},
                        periodic :: Bool,
-                       directions)
-    n = ndims(array)
+                       directions) where T
+    indices = CartesianIndices(array)
     tracker = CorrelationTracker(array;
+                                 tracking   = trackers,
                                  periodic   = periodic,
                                  directions = directions)
     for n in 1:100
-        idx = [rand(1:d) for d in size(array)]
-        array[idx...]   = 1 - array[idx...]
-        tracker[idx...] = 1 - tracker[idx...]
+        idx = rand(indices)
+        array[idx]   = 1 - array[idx]
+        tracker[idx] = 1 - tracker[idx]
     end
 
     for data in tracked_data(tracker)
@@ -30,11 +47,15 @@ function test_tracker!(array    :: AbstractArray,
 end
 
 @testset "2D system" begin
-    test_tracker!(rand(0:1, (100, 50)),  false, directions_2d)
-    test_tracker!(rand(0:1, (100, 100)), true,  directions_2d)
+    test_tracker!(rand(0:1, (100, 50)),  trackers_all,   false, directions_2d)
+    test_tracker!(rand(0:1, (100, 100)), trackers_all,   true,  directions_2d)
+    test_tracker!(rand(0:1, (100, 50)),  trackers_axial, false, [:x, :y])
+    test_tracker!(rand(0:1, (100, 100)), trackers_axial, true,  [:x, :y])
 end
 
 @testset "3D system" begin
-    test_tracker!(rand(0:1, (100, 50,  200)), false, directions_3d)
-    test_tracker!(rand(0:1, (100, 100, 100)), true,  directions_3d)
+    test_tracker!(rand(0:1, (100, 50,  200)), trackers_all,   false, directions_3d)
+    test_tracker!(rand(0:1, (100, 100, 100)), trackers_all,   true,  directions_3d)
+    test_tracker!(rand(0:1, (100, 50,  200)), trackers_axial, false, [:x, :y, :z])
+    test_tracker!(rand(0:1, (100, 100, 100)), trackers_axial, true,  [:x, :y, :z])
 end

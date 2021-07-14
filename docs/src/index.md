@@ -3,8 +3,8 @@
 `CorrelationTrackers.jl` package has a means to do fast updates of correlation
 functions calculated by `CorrelationFunctions.Directional` module in
 `CorrelationFunctions.jl`. Correlation functions are recalculated when you
-change an element of the underlying array. Currently, only `Directional.l2` and
-`Directional.s2` functions are supported.
+change an element of the underlying array. Currently, only `Directional.l2`,
+`Directional.s2` and `Directional.surfsurf` functions are supported.
 
 An update after one element of the underlying system was changed is about 20000
 times faster compared to a full recalculation of the correlation functions for

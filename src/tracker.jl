@@ -112,6 +112,7 @@ function CorrelationTracker(system     :: AbstractArray{T, N};
                                                            kwargs...)
                                                  for data in tracking)
     len = length(first(corrdata)[2])
+    # FIXME: What about multiphase systems?
     return CorrelationTracker{T, N, typeof(system)}(
         copy(system), periodic, corrdata, gradient(system), len, directions)
 end
@@ -172,7 +173,8 @@ function update_pre!(tracker  :: CorrelationTracker{T, N},
             slice, _ = get_slice(grad,
                                  tracker.periodic,
                                  Tuple(idx), direction)
-            s2 = Directional.s2(slice, Directional.SeparableIndicator(identity))
+            s2 = Directional.s2(slice, Directional.SeparableIndicator(identity);
+                                periodic = tracker.periodic, len = len)
             corrdata.success[direction] .-= s2.success[:x]
         end
     end
@@ -212,7 +214,8 @@ function update_post!(tracker  :: CorrelationTracker{T, N},
             slice, _ = get_slice(grad,
                                  tracker.periodic,
                                  Tuple(idx), direction)
-            s2 = Directional.s2(slice, Directional.SeparableIndicator(identity))
+            s2 = Directional.s2(slice, Directional.SeparableIndicator(identity);
+                                periodic = tracker.periodic, len = len)
             corrdata.success[direction] .+= s2.success[:x]
         end
     end
