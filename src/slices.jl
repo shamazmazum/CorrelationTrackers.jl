@@ -26,7 +26,7 @@ function get_slice(a        :: AbstractArray{T, N},
         indices = takewhile(x -> checkbounds(Bool, a, x...),
                             zip((countfrom(s, inc) for (s, inc) in zip(start, directions))...))
     end
-    return [@inbounds a[index...] for index in indices], m
+    return [@inbounds a[index...] for index in indices]
 end
 
 macro def_slicer(ndims, direction, expr)
@@ -37,15 +37,15 @@ macro def_slicer(ndims, direction, expr)
 end
 
 # 2D
-@def_slicer 2 :x let (x, y) = idx; a[:, y], x end
-@def_slicer 2 :y let (x, y) = idx; a[x, :], y end
+@def_slicer 2 :x let (_, y) = idx; a[:, y] end
+@def_slicer 2 :y let (x, _) = idx; a[x, :] end
 @def_slicer 2 :xy get_slice(a, periodic, idx, (true, true))
 @def_slicer 2 :yx get_slice(a, periodic, idx, (false, true))
 
 # 3D
-@def_slicer 3 :x let (x, y, z) = idx; a[:, y, z], x end
-@def_slicer 3 :y let (x, y, z) = idx; a[x, :, z], y end
-@def_slicer 3 :z let (x, y, z) = idx; a[x, y, :], z end
+@def_slicer 3 :x let (_, y, z) = idx; a[:, y, z] end
+@def_slicer 3 :y let (x, _, z) = idx; a[x, :, z] end
+@def_slicer 3 :z let (x, y, _) = idx; a[x, y, :] end
 
 @def_slicer 3 :xy let (x, y, z) = idx; get_slice(a[:,:,z], periodic, (x, y), :xy) end
 @def_slicer 3 :yx let (x, y, z) = idx; get_slice(a[:,:,z], periodic, (x, y), :yx) end

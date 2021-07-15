@@ -141,9 +141,9 @@ function update_pre!(tracker  :: CorrelationTracker{T, N},
     len = length(corrdata)
 
     for direction in Directional.directions(corrdata)
-        slice, _ = get_slice(tracker.system,
-                             tracker.periodic,
-                             idx, direction)
+        slice = get_slice(tracker.system,
+                          tracker.periodic,
+                          idx, direction)
         scorr = corrfunc(slice, phase;
                          periodic = tracker.periodic, len = len)
         corrdata.success[direction] .-= scorr.success[:x]
@@ -170,9 +170,9 @@ function update_pre!(tracker  :: CorrelationTracker{T, N},
     for direction in Directional.directions(corrdata)
         u = axial_index(grad, direction)
         for idx in max(index - u, fidx):min(index + u, lidx)
-            slice, _ = get_slice(grad,
-                                 tracker.periodic,
-                                 Tuple(idx), direction)
+            slice = get_slice(grad,
+                              tracker.periodic,
+                              Tuple(idx), direction)
             s2 = Directional.s2(slice, Directional.SeparableIndicator(identity);
                                 periodic = tracker.periodic, len = len)
             corrdata.success[direction] .-= s2.success[:x]
@@ -211,9 +211,9 @@ function update_post!(tracker  :: CorrelationTracker{T, N},
     for direction in Directional.directions(corrdata)
         u = axial_index(grad, direction)
         for idx in max(index - u, fidx):min(index + u, lidx)
-            slice, _ = get_slice(grad,
-                                 tracker.periodic,
-                                 Tuple(idx), direction)
+            slice = get_slice(grad,
+                              tracker.periodic,
+                              Tuple(idx), direction)
             s2 = Directional.s2(slice, Directional.SeparableIndicator(identity);
                                 periodic = tracker.periodic, len = len)
             corrdata.success[direction] .+= s2.success[:x]
@@ -234,9 +234,9 @@ function update_post!(tracker  :: CorrelationTracker{T, N},
     len = length(corrdata)
 
     for direction in Directional.directions(corrdata)
-        slice, _ = get_slice(tracker.system,
-                             tracker.periodic,
-                             idx, direction)
+        slice = get_slice(tracker.system,
+                          tracker.periodic,
+                          idx, direction)
         scorr = corrfunc(slice, phase;
                          periodic = tracker.periodic, len = len)
         corrdata.success[direction] .+= scorr.success[:x]
