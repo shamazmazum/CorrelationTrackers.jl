@@ -1,7 +1,7 @@
 name = "CorrelationTrackers"
 uuid = "2aaf3720-2af0-4ca4-b7d9-7d970023fcad"
 authors = ["Vasily Postnicov <shamaz.mazum@gmail.com>"]
-version = "0.4.1"
+version = "0.5.0"
 
 [deps]
 CircularArrays = "7a955b69-7140-5f4e-a0ed-f168c5e2e749"
@@ -11,7 +11,7 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [compat]
 CircularArrays = "1.2"
-CorrelationFunctions = "0.3.0"
+CorrelationFunctions = "0.3.2"
 julia = "^1.0"
 
 [extras]

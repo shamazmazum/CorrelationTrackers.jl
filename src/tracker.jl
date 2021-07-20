@@ -9,6 +9,7 @@ struct CorrelationTracker{T, N, A} <: AbstractArray{T, N}
     corrdata   :: Dict{AbstractTracker{T},
                        Directional.CorrelationData}
     grad       :: Array{Float64, N}
+    fft_plans  :: Directional.S2FTPlans
 
     # For quick access
     corrlen    :: Int
@@ -94,10 +95,24 @@ function CorrelationTracker(system     :: AbstractArray{T, N};
     len = length(first(corrdata)[2])
     # FIXME: What about multiphase systems?
     return CorrelationTracker{T, N, typeof(system)}(
-        copy(system), periodic, corrdata, gradient(system), len, directions)
+        copy(system), periodic,
+        corrdata, gradient(system),
+        Directional.S2FTPlans(system, periodic),
+        len, directions)
 end
 
 const SimpleTracker{T}  = Union{L2Tracker{T}, S2Tracker{T}}
+
+maybe_call_with_plans(slice :: AbstractArray{T},
+                      data  :: S2Tracker{T};
+                      plans :: Directional.S2FTPlans,
+                      kwargs...) where T =
+                          data(slice; plans = plans, kwargs...)
+maybe_call_with_plans(slice :: AbstractArray{T},
+                      data  :: AbstractTracker{T};
+                      plans :: Directional.S2FTPlans,
+                      kwargs...) where T =
+                          data(slice; kwargs...)
 
 function update_pre!(tracker  :: CorrelationTracker{T, N},
                      data     :: SimpleTracker{T},
@@ -110,7 +125,10 @@ function update_pre!(tracker  :: CorrelationTracker{T, N},
         slice, _ = get_slice(tracker.system,
                              tracker.periodic,
                              idx, direction)
-        scorr = data(slice; periodic = tracker.periodic, len = len)
+        scorr = maybe_call_with_plans(slice, data;
+                                      plans    = tracker.fft_plans,
+                                      periodic = tracker.periodic,
+                                      len = len)
         corrdata.success[direction] .-= scorr.success[:x]
     end
 
@@ -136,7 +154,9 @@ function update_pre!(tracker  :: CorrelationTracker{T, N},
                                  tracker.periodic,
                                  Tuple(idx), direction)
             s2 = Directional.s2(slice, Directional.SeparableIndicator(identity);
-                                periodic = tracker.periodic, len = len)
+                                periodic = tracker.periodic,
+                                plans    = tracker.fft_plans,
+                                len      = len)
             corrdata.success[direction] .-= s2.success[:x]
         end
     end
@@ -155,7 +175,10 @@ function update_post!(tracker  :: CorrelationTracker{T, N},
         slice, _ = get_slice(tracker.system,
                              tracker.periodic,
                              idx, direction)
-        scorr = data(slice; periodic = tracker.periodic, len = len)
+        scorr = maybe_call_with_plans(slice, data;
+                                      plans    = tracker.fft_plans,
+                                      periodic = tracker.periodic,
+                                      len = len)
         corrdata.success[direction] .+= scorr.success[:x]
     end
 
@@ -192,7 +215,9 @@ function update_post!(tracker  :: CorrelationTracker{T, N},
                                  tracker.periodic,
                                  Tuple(idx), direction)
             s2 = Directional.s2(slice, Directional.SeparableIndicator(identity);
-                                periodic = tracker.periodic, len = len)
+                                periodic = tracker.periodic,
+                                plans    = tracker.fft_plans,
+                                len      = len)
             corrdata.success[direction] .+= s2.success[:x]
         end
     end
