@@ -114,10 +114,10 @@ maybe_call_with_plans(slice :: AbstractArray{T},
                       kwargs...) where T =
                           data(slice; kwargs...)
 
-function update_pre!(tracker  :: CorrelationTracker{T, N},
+function update_pre!(tracker  :: CorrelationTracker{T},
                      data     :: SimpleTracker{T},
                      val,
-                     idx      :: Tuple) where {T, N}
+                     idx      :: Tuple) where T
     corrdata = tracker.corrdata[data]
     len = length(corrdata)
 
@@ -135,10 +135,10 @@ function update_pre!(tracker  :: CorrelationTracker{T, N},
     return nothing
 end
 
-function update_pre!(tracker  :: CorrelationTracker{T, N},
+function update_pre!(tracker  :: CorrelationTracker{T},
                      data     :: SSTracker{T},
                      val,
-                     index    :: Tuple) where {T, N}
+                     index    :: Tuple) where T
     index = CartesianIndex(index)
     corrdata = tracker.corrdata[data]
     grad     = tracker.grad
@@ -164,10 +164,10 @@ function update_pre!(tracker  :: CorrelationTracker{T, N},
     return nothing
 end
 
-function update_post!(tracker  :: CorrelationTracker{T, N},
+function update_post!(tracker  :: CorrelationTracker{T},
                       data     :: SimpleTracker{T},
                       val,
-                      idx      :: Tuple) where {T, N}
+                      idx      :: Tuple) where T
     corrdata = tracker.corrdata[data]
     len = length(corrdata)
 
@@ -185,10 +185,10 @@ function update_post!(tracker  :: CorrelationTracker{T, N},
     return nothing
 end
 
-function update_post!(tracker  :: CorrelationTracker{T, N},
+function update_post!(tracker  :: CorrelationTracker{T},
                       data     :: SSTracker{T},
                       val,
-                      index    :: Tuple) where {T, N}
+                      index    :: Tuple) where T
     index = CartesianIndex(index)
     corrdata = tracker.corrdata[data]
     grad     = tracker.grad
