@@ -3,28 +3,13 @@ function gradient(array :: AbstractArray)
     return map((x...) -> norm(x), deltas...)
 end
 
-"""
-    TrackedData{T}(func :: Function, phase :: T)
-
-Construct a pair of correlation function `func` and phase `phase`
-which must be tracked in `CorrelationTracker`.
-
-# Examples
-```jldoctest
-julia> TrackedData(Directional.l2, 1)
-TrackedData{Int64}(CorrelationFunctions.Directional.l2, 1)
-```
-"""
-struct TrackedData{T}
-    func  :: Function
-    phase :: T
-end
-
 struct CorrelationTracker{T, N, A} <: AbstractArray{T, N}
     system     :: A
     periodic   :: Bool
-    corrdata   :: Dict{TrackedData{T}, Directional.CorrelationData}
+    corrdata   :: Dict{AbstractTracker{T},
+                       Directional.CorrelationData}
     grad       :: Array{Float64, N}
+    fft_plans  :: Directional.S2FTPlans
 
     # For quick access
     corrlen    :: Int
@@ -38,10 +23,7 @@ Construct a vector of correlation functions which are tracked by
 default (that is $S_2^1(x)$, $L_2^1(x)$ and $L_2^0(x)$). `T` is the
 type of `x`.
 """
-default_trackers(T :: Type) = 
-    [TrackedData{T}(Directional.s2, 0),
-     TrackedData{T}(Directional.l2, 1),
-     TrackedData{T}(Directional.l2, 0)]
+default_trackers(T :: Type) = [S2Tracker{T}(0), L2Tracker{T}(1), L2Tracker{T}(0)]
 
 """
     CorrelationTracker(system   :: AbstractArray{T, N}; 
@@ -51,10 +33,11 @@ default_trackers(T :: Type) =
 Create correlation functions tracker.
 
 Create correlation tracker for the array `system`. `tracking` is a
-vector of `TrackedData` structures which specify correlation functions
-you wish to track. `periodic` and `direction` have the same meaning as
-in the most functions in `CorrelationFunctions.jl` package. Additional
-arguments such as `len` may be passed in `kwargs`.
+vector of `AbstractTracker` structures which specify correlation
+functions you wish to track. `periodic` and `direction` have the same
+meaning as in the most functions in `CorrelationFunctions.jl`
+package. Additional arguments such as `len` may be passed in
+`kwargs`.
 
 Returned tracker supports interface of `AbstractArray` (e.g. you can
 perform element-wise read and write operations).
@@ -99,69 +82,66 @@ julia> let
 ```
 """
 function CorrelationTracker(system     :: AbstractArray{T, N};
-                            tracking   :: Vector{TrackedData{T}} = default_trackers(T),
-                            periodic   :: Bool                   = false,
-                            directions :: Vector{Symbol}         =
-                            system |> Directional.default_directions,
+                            tracking   :: Vector{<:AbstractTracker{T}} = default_trackers(T),
+                            periodic   :: Bool           = false,
+                            directions :: Vector{Symbol} = system |> Directional.default_directions,
                             kwargs...) where {T, N}
-    corrdata = Dict{TrackedData{T},
-                    Directional.CorrelationData}(data =>
-                                                 data.func(system, data.phase;
-                                                           periodic   = periodic,
-                                                           directions = directions,
-                                                           kwargs...)
-                                                 for data in tracking)
+    corrdata = Dict{AbstractTracker{T}, Directional.CorrelationData}(
+        data => data(system;
+                     periodic   = periodic,
+                     directions = directions,
+                     kwargs...)
+        for data in tracking)
     len = length(first(corrdata)[2])
     # FIXME: What about multiphase systems?
     return CorrelationTracker{T, N, typeof(system)}(
-        copy(system), periodic, corrdata, gradient(system), len, directions)
+        copy(system), periodic,
+        corrdata, gradient(system),
+        Directional.S2FTPlans(system, periodic),
+        len, directions)
 end
 
-# Looks ugly
-abstract type Updater end
-struct L2Updater <: Updater end
-struct SSUpdater <: Updater end
+const SimpleTracker{T}  = Union{L2Tracker{T}, S2Tracker{T}}
 
-function make_updater(fn :: Function)
-    if fn === Directional.s2 || fn === Directional.l2
-        return L2Updater()
-    elseif fn === Directional.surfsurf
-        return SSUpdater()
-    end
-end
+maybe_call_with_plans(slice :: AbstractArray{T},
+                      data  :: S2Tracker{T};
+                      plans :: Directional.S2FTPlans,
+                      kwargs...) where T =
+                          data(slice; plans = plans, kwargs...)
+maybe_call_with_plans(slice :: AbstractArray{T},
+                      data  :: AbstractTracker{T};
+                      plans :: Directional.S2FTPlans,
+                      kwargs...) where T =
+                          data(slice; kwargs...)
 
-function update_pre!(tracker  :: CorrelationTracker{T, N},
-                     data     :: TrackedData{T},
-                     _        :: L2Updater,
+function update_pre!(tracker  :: CorrelationTracker{T},
+                     data     :: SimpleTracker{T},
                      val,
-                     idx      :: Tuple) where {T, N}
+                     idx      :: Tuple) where T
     corrdata = tracker.corrdata[data]
-    corrfunc = data.func
-    phase    = data.phase
     len = length(corrdata)
 
     for direction in Directional.directions(corrdata)
         slice = get_slice(tracker.system,
                           tracker.periodic,
                           idx, direction)
-        scorr = corrfunc(slice, phase;
-                         periodic = tracker.periodic, len = len)
+        scorr = maybe_call_with_plans(slice, data;
+                                      plans    = tracker.fft_plans,
+                                      periodic = tracker.periodic,
+                                      len = len)
         corrdata.success[direction] .-= scorr.success[:x]
     end
 
     return nothing
 end
 
-function update_pre!(tracker  :: CorrelationTracker{T, N},
-                     data     :: TrackedData{T},
-                     _        :: SSUpdater,
+function update_pre!(tracker  :: CorrelationTracker{T},
+                     data     :: SSTracker{T},
                      val,
-                     index    :: Tuple) where {T, N}
+                     index    :: Tuple) where T
     index = CartesianIndex(index)
     corrdata = tracker.corrdata[data]
-    corrfunc = data.func
     grad     = tracker.grad
-    phase    = data.phase
     len      = length(corrdata)
 
     indices = CartesianIndices(grad)
@@ -174,7 +154,9 @@ function update_pre!(tracker  :: CorrelationTracker{T, N},
                               tracker.periodic,
                               Tuple(idx), direction)
             s2 = Directional.s2(slice, Directional.SeparableIndicator(identity);
-                                periodic = tracker.periodic, len = len)
+                                periodic = tracker.periodic,
+                                plans    = tracker.fft_plans,
+                                len      = len)
             corrdata.success[direction] .-= s2.success[:x]
         end
     end
@@ -182,16 +164,34 @@ function update_pre!(tracker  :: CorrelationTracker{T, N},
     return nothing
 end
 
-function update_post!(tracker  :: CorrelationTracker{T, N},
-                      data     :: TrackedData{T},
-                      _        :: SSUpdater,
+function update_post!(tracker  :: CorrelationTracker{T},
+                      data     :: SimpleTracker{T},
                       val,
-                      index    :: Tuple) where {T, N}
+                      idx      :: Tuple) where T
+    corrdata = tracker.corrdata[data]
+    len = length(corrdata)
+
+    for direction in Directional.directions(corrdata)
+        slice = get_slice(tracker.system,
+                          tracker.periodic,
+                          idx, direction)
+        scorr = maybe_call_with_plans(slice, data;
+                                      plans    = tracker.fft_plans,
+                                      periodic = tracker.periodic,
+                                      len = len)
+        corrdata.success[direction] .+= scorr.success[:x]
+    end
+
+    return nothing
+end
+
+function update_post!(tracker  :: CorrelationTracker{T},
+                      data     :: SSTracker{T},
+                      val,
+                      index    :: Tuple) where T
     index = CartesianIndex(index)
     corrdata = tracker.corrdata[data]
-    corrfunc = data.func
     grad     = tracker.grad
-    phase    = data.phase
     len      = length(corrdata)
 
     indices = CartesianIndices(grad)
@@ -215,7 +215,9 @@ function update_post!(tracker  :: CorrelationTracker{T, N},
                               tracker.periodic,
                               Tuple(idx), direction)
             s2 = Directional.s2(slice, Directional.SeparableIndicator(identity);
-                                periodic = tracker.periodic, len = len)
+                                periodic = tracker.periodic,
+                                plans    = tracker.fft_plans,
+                                len      = len)
             corrdata.success[direction] .+= s2.success[:x]
         end
     end
@@ -223,45 +225,11 @@ function update_post!(tracker  :: CorrelationTracker{T, N},
     return nothing
 end
 
-function update_post!(tracker  :: CorrelationTracker{T, N},
-                      data     :: TrackedData{T},
-                      _        :: L2Updater,
-                      val,
-                      idx      :: Tuple) where {T, N}
-    corrdata = tracker.corrdata[data]
-    corrfunc = data.func
-    phase    = data.phase
-    len = length(corrdata)
-
-    for direction in Directional.directions(corrdata)
-        slice = get_slice(tracker.system,
-                          tracker.periodic,
-                          idx, direction)
-        scorr = corrfunc(slice, phase;
-                         periodic = tracker.periodic, len = len)
-        corrdata.success[direction] .+= scorr.success[:x]
-    end
-
-    return nothing
-end
-
-update_pre!(tracker  :: CorrelationTracker{T, N},
-            data     :: TrackedData{T},
-            val,
-            idx      :: Tuple) where {T, N} =
-                update_pre!(tracker, data, make_updater(data.func), val, idx)
-
-update_post!(tracker  :: CorrelationTracker{T, N},
-             data     :: TrackedData{T},
-             val,
-             idx      :: Tuple) where {T, N} =
-                 update_post!(tracker, data, make_updater(data.func), val, idx)
-
 """
     tracked_data(x :: CorrelationTracker)
 
-Return an iterator over `TrackedData` objects which are tracked by the
-tracker.
+Return an iterator over correlation function descriptors which are
+tracked by the tracker.
 """
 tracked_data(x :: CorrelationTracker) = x.corrdata |> keys
 
@@ -292,42 +260,6 @@ julia> tracked_directions(CorrelationTracker{Int,2}(rand(0:1, (50, 100))))
 ```
 """
 tracked_directions(x :: CorrelationTracker) = x.directions
-
-# Correlation functions interface
-# ! FIXME: It should be safe to return internal structures as long as
-# noone is going to modify them. I see no such scenario.
-# Make TrackedData callable
-(data :: TrackedData{T})(tracker :: CorrelationTracker{T, N}) where {T, N} =
-    tracker.corrdata[data]
-(data :: TrackedData{T})(array :: AbstractArray{T, N}; kwargs...) where {T, N} =
-    data.func(array, data.phase; kwargs...)
-
-@doc raw"""
-    Directional.l2(x :: CorrelationTracker, phase)
-
-Return $L_2^{\text{phase}}$ function for an underlying system of the
-tracker `x`.
-"""
-Directional.l2(x :: CorrelationTracker{T, N}, phase) where {T, N} =
-    TrackedData{T}(Directional.l2, phase)(x)
-
-@doc raw"""
-    Directional.s2(x :: CorrelationTracker, phase)
-
-Return $S_2^{\text{phase}}$ function for an underlying system of the
-tracker `x`.
-"""
-Directional.s2(x :: CorrelationTracker{T, N}, phase) where {T, N} =
-    TrackedData{T}(Directional.s2, phase)(x)
-
-@doc raw"""
-    Directional.surfsurf(x :: CorrelationTracker, phase)
-
-Return $F_{ss}_2^{\text{phase}}$ function for an underlying system of the
-tracker `x`.
-"""
-Directional.surfsurf(x :: CorrelationTracker{T, N}, phase) where {T, N} =
-    TrackedData{T}(Directional.surfsurf, phase)(x)
 
 # Array interface
 Base.size(x :: CorrelationTracker) = size(x.system)
