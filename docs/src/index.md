@@ -1,6 +1,6 @@
 # CorrelationTrackers.jl
 
-`CorrelationTrackers.jl` package has a means to do fast updates of correlation
+`CorrelationTrackers.jl` package has means to do fast updates of correlation
 functions calculated by `CorrelationFunctions.Directional` module in
 `CorrelationFunctions.jl`. Correlation functions are recalculated when you
 change an element of the underlying array. Currently, only `Directional.l2`,
@@ -18,8 +18,8 @@ This is a step-by-step guide on how to use `CorrelationTrackers.jl`:
    functions for. Let it be two-dimensional two-phase system with size 20x30.
 2. Pick combinations of correlation function + phase which you want to track,
    e.g $S_2^1(r)$, $L_2^1(r)$ and $L_2^0(r)$. A combination of function and
-   phase is represented in `TrackerData` structure,
-   e.g. `TrackerData(Directional.s2, 1)` will track $S_2^1(r)$ function.
+   phase is represented by `AbstractTracker` structures, e.g. `S2Tracker(1)`
+   will track $S_2^{(1)}(r)$ function.
 3. Create `CorrelationTracker` structure and access it as an ordinary array.
 4. Obtain correlation functions at any time using functions from
    `CorrelationFunctions.Directional`. module.
@@ -35,8 +35,7 @@ using CorrelationTrackers
 system = rand(MersenneTwister(348), 0:1, (20, 30))
 
 # Suppose we want to track $S_2^1(r)$ and $L_2^0(r)$.
-tracking = [TrackedData(Directional.s2, 1), 
-            TrackedData(Directional.l2, 1)]
+tracking = [S2Tracker(1), L2Tracker(1)]
 
 # Create the tracker. It may require some time if your system is big.
 tracker = CorrelationTracker(system; tracking = tracking)
@@ -58,7 +57,10 @@ pretty_table(stdout, hcat(Directional.s2(system,  1) |> mean,
 ## API
 
 ```@docs
-TrackedData
+AbstractTracker
+S2Tracker
+L2Tracker
+SSTracker
 default_trackers
 CorrelationTracker
 tracked_data

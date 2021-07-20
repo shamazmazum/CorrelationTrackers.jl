@@ -10,18 +10,11 @@ const directions_3d = [
     :xyz, :yxz, :xzy, :zyx
 ]
 
-const trackers_all = [
-    TrackedData(Directional.s2, 0),
-    TrackedData(Directional.l2, 0),
-    TrackedData(Directional.l2, 1),
-]
-
-const trackers_axial = [
-    TrackedData(Directional.surfsurf, 0)
-]
+const trackers_all = [S2Tracker(0), L2Tracker(0), L2Tracker(1)]
+const trackers_axial = [SSTracker(0)]
 
 function test_tracker!(array    :: AbstractArray{T},
-                       trackers :: Vector{TrackedData{T}},
+                       trackers :: Vector{<:AbstractTracker{T}},
                        periodic :: Bool,
                        directions) where T
     indices = CartesianIndices(array)
