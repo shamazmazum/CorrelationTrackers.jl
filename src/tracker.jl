@@ -103,17 +103,6 @@ end
 
 const SimpleTracker{T}  = Union{L2Tracker{T}, S2Tracker{T}}
 
-maybe_call_with_plans(slice :: AbstractArray{T},
-                      data  :: S2Tracker{T};
-                      plans :: Directional.S2FTPlans,
-                      kwargs...) where T =
-                          data(slice; plans = plans, kwargs...)
-maybe_call_with_plans(slice :: AbstractArray{T},
-                      data  :: AbstractTracker{T};
-                      plans :: Directional.S2FTPlans,
-                      kwargs...) where T =
-                          data(slice; kwargs...)
-
 function update_pre!(tracker  :: CorrelationTracker{T},
                      data     :: SimpleTracker{T},
                      val,
@@ -139,7 +128,7 @@ function update_pre!(tracker  :: CorrelationTracker{T},
                      data     :: SSTracker{T},
                      val,
                      index    :: Tuple) where T
-    index = CartesianIndex(index)
+    index    = CartesianIndex(index)
     corrdata = tracker.corrdata[data]
     grad     = tracker.grad
     len      = length(corrdata)
@@ -189,24 +178,13 @@ function update_post!(tracker  :: CorrelationTracker{T},
                       data     :: SSTracker{T},
                       val,
                       index    :: Tuple) where T
-    index = CartesianIndex(index)
+    index    = CartesianIndex(index)
     corrdata = tracker.corrdata[data]
     grad     = tracker.grad
     len      = length(corrdata)
 
     indices = CartesianIndices(grad)
     fidx, lidx = first(indices), last(indices)
-    uidx = oneunit(index)
-    gradstart = max(index - 2uidx, fidx)
-    gradstop  = min(index + 2uidx, lidx)
-    subsys = tracker.system[gradstart:gradstop]
-    subgrad = gradient(subsys)
-
-    index_subgrad = index - gradstart + uidx
-    indices_subgrad  = CartesianIndices(subgrad)
-    fidx2, lidx2 = first(indices_subgrad), last(indices_subgrad)
-    grad[max(index - uidx, fidx):min(index + uidx, lidx)] .=
-        subgrad[max(index_subgrad - uidx, fidx2):min(index_subgrad + uidx, lidx2)]
 
     for direction in Directional.directions(corrdata)
         u = axial_index(grad, direction)
@@ -221,6 +199,34 @@ function update_post!(tracker  :: CorrelationTracker{T},
             corrdata.success[direction] .+= s2.success[:x]
         end
     end
+
+    return nothing
+end
+
+function update_gradient!(tracker  :: CorrelationTracker,
+                          index    :: Tuple)
+    index  = CartesianIndex(index)
+    grad   = tracker.grad
+    system = tracker.system
+
+    indices    = CartesianIndices(grad)
+    fidx, lidx = first(indices), last(indices)
+    uidx       = oneunit(index)
+
+    # Select 5x5 square (or 5x5x5 cube) used to update gradient
+    gradstart = max(index - 2uidx, fidx)
+    gradstop  = min(index + 2uidx, lidx)
+    subsys    = system[gradstart:gradstop]
+    subgrad   = gradient(subsys)
+
+    # Index of the updated element in subgrad
+    sindex = index - gradstart + uidx
+    sindices  = CartesianIndices(subgrad)
+    sfidx, slidx = first(sindices), last(sindices)
+
+    # Update gradient
+    grad[max(index - uidx, fidx):min(index + uidx, lidx)] .=
+        subgrad[max(sindex - uidx, sfidx):min(sindex + uidx, slidx)]
 
     return nothing
 end
@@ -274,6 +280,11 @@ function Base.setindex!(x   :: CorrelationTracker,
 
     # Change the value
     x.system[idx...] = val
+
+    # Update gradient if needed
+    if any(update_gradient_p, keys(x.corrdata))
+        update_gradient!(x, idx)
+    end
 
     # Do everything else
     for tracked_data in keys(x.corrdata)

@@ -57,3 +57,20 @@ See also: [`S2Tracker`](@ref), [`L2Tracker`](@ref),
 struct SVTracker{T} <: AbstractTracker{T}
     phase :: T
 end
+
+# Utility functions
+maybe_call_with_plans(slice :: AbstractArray{T},
+                      data  :: S2Tracker{T};
+                      plans :: Directional.S2FTPlans,
+                      kwargs...) where T =
+                          data(slice; plans = plans, kwargs...)
+maybe_call_with_plans(slice :: AbstractArray{T},
+                      data  :: AbstractTracker{T};
+                      plans :: Directional.S2FTPlans,
+                      kwargs...) where T =
+                          data(slice; kwargs...)
+
+# Is gradient update needed?
+update_gradient_p(:: SSTracker)       = true
+update_gradient_p(:: SVTracker)       = true
+update_gradient_p(:: AbstractTracker) = false
