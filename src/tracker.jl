@@ -114,7 +114,7 @@ const SimpleTracker{T}  = Union{L2Tracker{T}, S2Tracker{T}}
 function update_pre!(tracker :: CorrelationTracker{T, N},
                      uinfo   :: CDUpdateInfo{T},
                      data    :: SimpleTracker{T},
-                     val     :: T,
+                     val,
                      index   :: CartesianIndex{N}) where {T, N}
     corrdata = tracker.corrdata[data]
     len      = length(corrdata)
@@ -136,7 +136,7 @@ end
 function update_pre!(tracker :: CorrelationTracker{T, N},
                      uinfo   :: CDUpdateInfo{T},
                      data    :: SSTracker{T},
-                     val     :: T,
+                     val,
                      index   :: CartesianIndex{N}) where {T, N}
     corrdata = tracker.corrdata[data]
     grad     = tracker.grad
@@ -167,7 +167,7 @@ end
 function update_post!(tracker :: CorrelationTracker{T, N},
                       uinfo   :: CDUpdateInfo{T},
                       data    :: SimpleTracker{T},
-                      val     :: T,
+                      val,
                       index   :: CartesianIndex{N}) where {T, N}
     corrdata = tracker.corrdata[data]
     len      = length(corrdata)
@@ -191,7 +191,7 @@ end
 function update_post!(tracker :: CorrelationTracker{T, N},
                       uinfo   :: CDUpdateInfo{T},
                       data    :: SSTracker{T},
-                      val     :: T,
+                      val,
                       index   :: CartesianIndex{N}) where {T, N}
     corrdata = tracker.corrdata[data]
     grad     = tracker.grad
@@ -261,7 +261,7 @@ function rollback_gradient!(tracker :: CorrelationTracker{T, N},
 end
 
 function update_corrfns!(tracker :: CorrelationTracker{T,N},
-                         val     :: T,
+                         val,
                          index   :: CartesianIndex{N}) where {T, N}
     trackers = keys(tracker.corrdata)
     update_info = CDUpdateInfo{T}()
@@ -357,4 +357,4 @@ tracked_directions(x :: CorrelationTracker) = x.directions
 Base.size(x :: CorrelationTracker) = size(x.system)
 Base.getindex(x :: CorrelationTracker, idx :: Vararg{Int}) = getindex(x.system, idx...)
 Base.setindex!(x :: CorrelationTracker{T}, val, idx :: Vararg{Int}) where T =
-    update_corrfns!(x, T(val), CartesianIndex(idx))
+    update_corrfns!(x, val, CartesianIndex(idx))
