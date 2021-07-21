@@ -1,7 +1,7 @@
 name = "CorrelationTrackers"
 uuid = "2aaf3720-2af0-4ca4-b7d9-7d970023fcad"
 authors = ["Vasily Postnicov <shamaz.mazum@gmail.com>"]
-version = "0.5.0"
+version = "0.5.1"
 
 [deps]
 CircularArrays = "7a955b69-7140-5f4e-a0ed-f168c5e2e749"
