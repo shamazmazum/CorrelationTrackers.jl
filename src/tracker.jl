@@ -103,17 +103,17 @@ end
 
 const SimpleTracker{T}  = Union{L2Tracker{T}, S2Tracker{T}}
 
-function update_pre!(tracker  :: CorrelationTracker{T},
+function update_pre!(tracker  :: CorrelationTracker{T, N},
                      data     :: SimpleTracker{T},
-                     val,
-                     idx      :: Tuple) where T
+                     val      :: T,
+                     index    :: CartesianIndex{N}) where {T, N}
     corrdata = tracker.corrdata[data]
     len = length(corrdata)
 
     for direction in Directional.directions(corrdata)
         slice = get_slice(tracker.system,
                           tracker.periodic,
-                          idx, direction)
+                          Tuple(index), direction)
         scorr = maybe_call_with_plans(slice, data;
                                       plans    = tracker.fft_plans,
                                       periodic = tracker.periodic,
@@ -124,11 +124,10 @@ function update_pre!(tracker  :: CorrelationTracker{T},
     return nothing
 end
 
-function update_pre!(tracker  :: CorrelationTracker{T},
+function update_pre!(tracker  :: CorrelationTracker{T, N},
                      data     :: SSTracker{T},
-                     val,
-                     index    :: Tuple) where T
-    index    = CartesianIndex(index)
+                     val      :: T,
+                     index    :: CartesianIndex{N}) where {T, N}
     corrdata = tracker.corrdata[data]
     grad     = tracker.grad
     len      = length(corrdata)
@@ -153,17 +152,17 @@ function update_pre!(tracker  :: CorrelationTracker{T},
     return nothing
 end
 
-function update_post!(tracker  :: CorrelationTracker{T},
+function update_post!(tracker  :: CorrelationTracker{T, N},
                       data     :: SimpleTracker{T},
-                      val,
-                      idx      :: Tuple) where T
+                      val      :: T,
+                      index    :: CartesianIndex{N}) where {T, N}
     corrdata = tracker.corrdata[data]
     len = length(corrdata)
 
     for direction in Directional.directions(corrdata)
         slice = get_slice(tracker.system,
                           tracker.periodic,
-                          idx, direction)
+                          Tuple(index), direction)
         scorr = maybe_call_with_plans(slice, data;
                                       plans    = tracker.fft_plans,
                                       periodic = tracker.periodic,
@@ -174,11 +173,10 @@ function update_post!(tracker  :: CorrelationTracker{T},
     return nothing
 end
 
-function update_post!(tracker  :: CorrelationTracker{T},
+function update_post!(tracker  :: CorrelationTracker{T, N},
                       data     :: SSTracker{T},
-                      val,
-                      index    :: Tuple) where T
-    index    = CartesianIndex(index)
+                      val      :: T,
+                      index    :: CartesianIndex{N}) where {T, N}
     corrdata = tracker.corrdata[data]
     grad     = tracker.grad
     len      = length(corrdata)
@@ -203,9 +201,8 @@ function update_post!(tracker  :: CorrelationTracker{T},
     return nothing
 end
 
-function update_gradient!(tracker  :: CorrelationTracker,
-                          index    :: Tuple)
-    index  = CartesianIndex(index)
+function update_gradient!(tracker  :: CorrelationTracker{T, N},
+                          index    :: CartesianIndex{N}) where {T, N}
     grad   = tracker.grad
     system = tracker.system
 
@@ -231,6 +228,33 @@ function update_gradient!(tracker  :: CorrelationTracker,
     return nothing
 end
 
+function update_corrfns!(tracker :: CorrelationTracker{T,N},
+                         val     :: T,
+                         index   :: CartesianIndex{N}) where {T, N}
+    trackers = keys(tracker.corrdata)
+
+    # Do everything we can before updating the value in the underlying array
+    for tr in trackers
+        update_pre!(tracker, tr, val, index)
+    end
+
+    # Change the value
+    tracker.system[index] = val
+
+    # Update gradient if needed
+    if any(update_gradient_p, trackers)
+        update_gradient!(tracker, index)
+    end
+
+    # Do everything else
+    for tr in trackers
+        update_post!(tracker, tr, val, index)
+    end
+
+    return nothing
+end
+
+# Interface
 """
     tracked_data(x :: CorrelationTracker)
 
@@ -270,26 +294,5 @@ tracked_directions(x :: CorrelationTracker) = x.directions
 # Array interface
 Base.size(x :: CorrelationTracker) = size(x.system)
 Base.getindex(x :: CorrelationTracker, idx :: Vararg{Int}) = getindex(x.system, idx...)
-function Base.setindex!(x   :: CorrelationTracker,
-                        val,
-                        idx :: Vararg{Int})
-    # Do everything we can before updating the value in the underlying array
-    for tracked_data in keys(x.corrdata)
-        update_pre!(x, tracked_data, val, idx)
-    end
-
-    # Change the value
-    x.system[idx...] = val
-
-    # Update gradient if needed
-    if any(update_gradient_p, keys(x.corrdata))
-        update_gradient!(x, idx)
-    end
-
-    # Do everything else
-    for tracked_data in keys(x.corrdata)
-        update_post!(x, tracked_data, val, idx)
-    end
-
-    return x
-end
+Base.setindex!(x :: CorrelationTracker{T}, val, idx :: Vararg{Int}) where T =
+    update_corrfns!(x, T(val), CartesianIndex(idx))
