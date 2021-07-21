@@ -306,7 +306,7 @@ function rollback!(tracker  :: CorrelationTracker{T, N},
     end
 
     # Roll back the value of the changed element
-    tracker[index] = val
+    tracker.system[index] = val
 
     # Roll back gradient
     if any(update_gradient_p, trackers)
