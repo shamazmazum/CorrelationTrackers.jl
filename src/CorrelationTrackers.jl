@@ -21,6 +21,7 @@ export
     tracked_length,
     tracked_directions,
 
+    RollbackToken,
     update_corrfns!,
     rollback!
 end # module
