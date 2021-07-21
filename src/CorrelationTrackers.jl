@@ -19,5 +19,8 @@ export
 
     tracked_data,
     tracked_length,
-    tracked_directions
+    tracked_directions,
+
+    update_corrfns!,
+    rollback!
 end # module

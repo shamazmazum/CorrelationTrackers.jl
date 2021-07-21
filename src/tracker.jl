@@ -247,6 +247,19 @@ function update_gradient!(tracker  :: CorrelationTracker{T, N},
     return to_update
 end
 
+function rollback_gradient!(tracker :: CorrelationTracker{T, N},
+                            index   :: CartesianIndex{N},
+                            subgrad :: Array{Float64, N}) where {T, N}
+    grad       = tracker.grad
+    indices    = CartesianIndices(grad)
+    fidx, lidx = first(indices), last(indices)
+    uidx       = oneunit(index)
+
+    grad[max(index - uidx, fidx):min(index + uidx, lidx)] .= subgrad
+
+    return nothing
+end
+
 function update_corrfns!(tracker :: CorrelationTracker{T,N},
                          val     :: T,
                          index   :: CartesianIndex{N}) where {T, N}
@@ -275,6 +288,32 @@ function update_corrfns!(tracker :: CorrelationTracker{T,N},
     end
 
     return RollbackToken{T, N}(val, index, update_info, grad)
+end
+
+function rollback!(tracker  :: CorrelationTracker{T, N},
+                   rollback :: RollbackToken{T, N}) where {T, N}
+    trackers = keys(tracker.corrdata)
+    index    = rollback.index
+    val      = rollback.val
+
+    # Roll back correlation functions
+    for tr in trackers
+        corrdata = tracker.corrdata[tr]
+
+        for direction in Directional.directions(corrdata)
+            corrdata.success[direction] .-= rollback.corrdata[(tr, direction)]
+        end
+    end
+
+    # Roll back the value of the changed element
+    tracker[index] = val
+
+    # Roll back gradient
+    if any(update_gradient_p, trackers)
+        rollback_gradient!(tracker, index, rollback.grad)
+    end
+
+    return tracker
 end
 
 # Interface
