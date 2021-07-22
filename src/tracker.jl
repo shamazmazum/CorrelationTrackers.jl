@@ -273,6 +273,7 @@ function update_corrfns!(tracker :: CorrelationTracker{T,N},
     end
 
     # Change the value
+    oldval = tracker.system[index]
     tracker.system[index] = val
 
     # Update gradient if needed
@@ -287,7 +288,7 @@ function update_corrfns!(tracker :: CorrelationTracker{T,N},
                      tr, val, index)
     end
 
-    return RollbackToken{T, N}(val, index, update_info, grad)
+    return RollbackToken{T, N}(oldval, index, update_info, grad)
 end
 
 function rollback!(tracker  :: CorrelationTracker{T, N},

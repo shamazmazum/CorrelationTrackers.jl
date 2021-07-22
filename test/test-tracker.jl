@@ -62,6 +62,7 @@ function test_rollback!(array    :: AbstractArray{T},
         for (direction, data) in expected
             @test data ≈ got[direction]
         end
+        @test tracker1 == tracker2
     end
 end
 
