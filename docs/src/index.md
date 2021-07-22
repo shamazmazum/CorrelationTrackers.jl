@@ -66,6 +66,8 @@ CorrelationTracker
 tracked_data
 tracked_length
 tracked_directions
+update_corrfns!
+rollback!
 ```
 
 ## Caveats

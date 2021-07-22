@@ -260,6 +260,15 @@ function rollback_gradient!(tracker :: CorrelationTracker{T, N},
     return nothing
 end
 
+"""
+    update_corrfns!(tracker, value, index)
+
+This function is equivalent to writing `tracker[index] = value` with
+exception that it also returns a rollback handle which can fastly
+bring the tracker to the previous state by calling `rollback!`.
+
+See also: [`rollback!`](@ref).
+"""
 function update_corrfns!(tracker :: CorrelationTracker{T,N},
                          val,
                          index   :: CartesianIndex{N}) where {T, N}
@@ -291,6 +300,14 @@ function update_corrfns!(tracker :: CorrelationTracker{T,N},
     return RollbackToken{T, N}(oldval, index, update_info, grad)
 end
 
+"""
+    rollback!(tracker, token)
+
+Bring the system to the state before `update_corrfns!` was
+called. `token` must be an object returned by `update_corrfns!`.
+
+See also: [`update_corrfns!`](@ref).
+"""
 function rollback!(tracker  :: CorrelationTracker{T, N},
                    rollback :: RollbackToken{T, N}) where {T, N}
     trackers = keys(tracker.corrdata)
