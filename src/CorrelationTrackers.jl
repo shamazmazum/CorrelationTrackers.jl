@@ -6,9 +6,9 @@ using LinearAlgebra: norm
 using Images: imgradients, KernelFactors
 
 include("slices.jl")
-include("updaters_early.jl")
+include("trackers-early.jl")
 include("tracker.jl")
-include("updaters_late.jl")
+include("trackers-late.jl")
 
 export
     CorrelationTracker,
