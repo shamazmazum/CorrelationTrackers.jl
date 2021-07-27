@@ -111,15 +111,15 @@ end
 
 const SimpleTracker{T}  = Union{L2Tracker{T}, S2Tracker{T}}
 
-function update_pre!(tracker :: CorrelationTracker{T, N},
-                     uinfo   :: CDUpdateInfo{T},
-                     data    :: SimpleTracker{T},
-                     val,
-                     index   :: CartesianIndex{N}) where {T, N}
+function update_cf(tracker :: CorrelationTracker{T, N},
+                   data    :: SimpleTracker{T},
+                   val,
+                   index   :: CartesianIndex{N}) where {T, N}
     corrdata = tracker.corrdata[data]
     len      = length(corrdata)
+    dict     = Dict{Symbol, Vector}()
 
-    for direction in Directional.directions(corrdata)
+    for direction in tracker.directions
         slice = get_slice(tracker.system,
                           tracker.periodic,
                           Tuple(index), direction)
@@ -127,80 +127,25 @@ function update_pre!(tracker :: CorrelationTracker{T, N},
                                       plans    = tracker.fft_plans,
                                       periodic = tracker.periodic,
                                       len = len)
-        uinfo[(data, direction)] = -scorr.success[:x]
+        dict[direction] = scorr.success[:x]
     end
 
-    return nothing
+    return dict
 end
 
-function update_pre!(tracker :: CorrelationTracker{T, N},
-                     uinfo   :: CDUpdateInfo{T},
-                     data    :: SSTracker{T},
-                     val,
-                     index   :: CartesianIndex{N}) where {T, N}
+function update_cf(tracker :: CorrelationTracker{T, N},
+                   data    :: SSTracker{T},
+                   val,
+                   index   :: CartesianIndex{N}) where {T, N}
     corrdata = tracker.corrdata[data]
     grad     = tracker.grad
     len      = length(corrdata)
+    dict     = Dict{Symbol, Vector}()
 
     indices = CartesianIndices(grad)
     fidx, lidx = first(indices), last(indices)
 
-    for direction in Directional.directions(corrdata)
-        u = axial_index(grad, direction)
-        success = mapreduce(.+, max(index - u, fidx):min(index + u, lidx)) do idx
-            slice = get_slice(grad,
-                              tracker.periodic,
-                              Tuple(idx), direction)
-            s2 = Directional.s2(slice, Directional.SeparableIndicator(identity);
-                                periodic = tracker.periodic,
-                                plans    = tracker.fft_plans,
-                                len      = len)
-            -s2.success[:x]
-        end
-
-        uinfo[(data, direction)] = success
-    end
-
-    return nothing
-end
-
-function update_post!(tracker :: CorrelationTracker{T, N},
-                      uinfo   :: CDUpdateInfo{T},
-                      data    :: SimpleTracker{T},
-                      val,
-                      index   :: CartesianIndex{N}) where {T, N}
-    corrdata = tracker.corrdata[data]
-    len      = length(corrdata)
-
-    for direction in Directional.directions(corrdata)
-        slice = get_slice(tracker.system,
-                          tracker.periodic,
-                          Tuple(index), direction)
-        scorr = maybe_call_with_plans(slice, data;
-                                      plans    = tracker.fft_plans,
-                                      periodic = tracker.periodic,
-                                      len = len)
-
-        uinfo[(data, direction)] .+= scorr.success[:x]
-        corrdata.success[direction] .+= uinfo[(data, direction)]
-    end
-
-    return nothing
-end
-
-function update_post!(tracker :: CorrelationTracker{T, N},
-                      uinfo   :: CDUpdateInfo{T},
-                      data    :: SSTracker{T},
-                      val,
-                      index   :: CartesianIndex{N}) where {T, N}
-    corrdata = tracker.corrdata[data]
-    grad     = tracker.grad
-    len      = length(corrdata)
-
-    indices = CartesianIndices(grad)
-    fidx, lidx = first(indices), last(indices)
-
-    for direction in Directional.directions(corrdata)
+    for direction in tracker.directions
         u = axial_index(grad, direction)
         success = mapreduce(.+, max(index - u, fidx):min(index + u, lidx)) do idx
             slice = get_slice(grad,
@@ -213,11 +158,10 @@ function update_post!(tracker :: CorrelationTracker{T, N},
             s2.success[:x]
         end
 
-        uinfo[(data, direction)] .+= success
-        corrdata.success[direction] .+= uinfo[(data, direction)]
+        dict[direction] = success
     end
 
-    return nothing
+    return dict
 end
 
 function update_gradient!(tracker  :: CorrelationTracker{T, N},
@@ -274,11 +218,14 @@ function update_corrfns!(tracker :: CorrelationTracker{T,N},
                          index   :: CartesianIndex{N}) where {T, N}
     trackers = keys(tracker.corrdata)
     update_info = CDUpdateInfo{T}()
+    directions = tracker.directions
 
     # Do everything we can before updating the value in the underlying array
     for tr in trackers
-        update_pre!(tracker, update_info,
-                    tr, val, index)
+        success = update_cf(tracker, tr, val, index)
+        for direction in directions
+            update_info[(tr, direction)] = -success[direction]
+        end
     end
 
     # Change the value
@@ -293,8 +240,12 @@ function update_corrfns!(tracker :: CorrelationTracker{T,N},
 
     # Do everything else
     for tr in trackers
-        update_post!(tracker, update_info,
-                     tr, val, index)
+        corrdata = tracker.corrdata[tr]
+        success = update_cf(tracker, tr, val, index)
+        for direction in directions
+            update_info[(tr, direction)] .+= success[direction]
+            corrdata.success[direction] .+= update_info[(tr, direction)]
+        end
     end
 
     return RollbackToken{T, N}(oldval, index, update_info, grad)
