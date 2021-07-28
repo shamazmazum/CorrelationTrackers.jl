@@ -217,15 +217,20 @@ function update_gradient!(tracker  :: CorrelationTracker{T, N},
     subgrad   = gradient(subsys)
 
     # Index of the updated element in subgrad
-    sindex = index - gradstart + uidx
-    sindices  = CartesianIndices(subgrad)
+    sindex       = index - gradstart + uidx
+    sindices     = CartesianIndices(subgrad)
     sfidx, slidx = first(sindices), last(sindices)
+    substart     = max(sindex - uidx, sfidx)
+    substop      = min(sindex + uidx, slidx)
 
     # Update gradient
-    to_update = subgrad[max(sindex - uidx, sfidx):min(sindex + uidx, slidx)]
-    grad[max(index - uidx, fidx):min(index + uidx, lidx)] .= to_update
+    upstart = max(index - uidx, fidx)
+    upstop  = min(index + uidx, lidx)
 
-    return to_update
+    oldgrad = grad[upstart:upstop]
+    grad[upstart:upstop] .= subgrad[substart:substop]
+
+    return oldgrad
 end
 
 function rollback_gradient!(tracker :: CorrelationTracker{T, N},
@@ -235,8 +240,10 @@ function rollback_gradient!(tracker :: CorrelationTracker{T, N},
     indices    = CartesianIndices(grad)
     fidx, lidx = first(indices), last(indices)
     uidx       = oneunit(index)
+    upstart    = max(index - uidx, fidx)
+    upstop     = min(index + uidx, lidx)
 
-    grad[max(index - uidx, fidx):min(index + uidx, lidx)] .= subgrad
+    grad[upstart:upstop] .= subgrad
 
     return nothing
 end
