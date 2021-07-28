@@ -13,7 +13,7 @@ include("trackers-late.jl")
 export
     CorrelationTracker,
     S2Tracker, L2Tracker,
-    SSTracker,# SVTracker,
+    SSTracker, SVTracker,
     AbstractTracker,
     default_trackers,
 

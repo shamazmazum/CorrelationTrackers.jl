@@ -11,7 +11,7 @@ const directions_3d = [
 ]
 
 const trackers_all = [S2Tracker(0), L2Tracker(0), L2Tracker(1)]
-const trackers_axial = [SSTracker(0)]
+const trackers_axial = [SSTracker(0), SVTracker(0)]
 
 create_tracker(array, trackers, periodic, directions) =
     CorrelationTracker(array;

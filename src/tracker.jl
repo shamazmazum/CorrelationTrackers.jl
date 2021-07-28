@@ -164,6 +164,43 @@ function update_cf(tracker :: CorrelationTracker{T, N},
     return dict
 end
 
+function update_cf(tracker :: CorrelationTracker{T, N},
+                   data    :: SVTracker{T},
+                   val,
+                   index   :: CartesianIndex{N}) where {T, N}
+    corrdata = tracker.corrdata[data]
+    grad     = tracker.grad
+    len      = length(corrdata)
+    dict     = Dict{Symbol, Vector}()
+
+    indices = CartesianIndices(grad)
+    fidx, lidx = first(indices), last(indices)
+
+    for direction in tracker.directions
+        u = axial_index(grad, direction)
+        success = mapreduce(.+, max(index - u, fidx):min(index + u, lidx)) do idx
+            slice_surface = get_slice(grad,
+                                      tracker.periodic,
+                                      Tuple(idx), direction)
+            slice_system = get_slice(tracker.system,
+                                     tracker.periodic,
+                                     Tuple(idx), direction)
+            χ1(x) = slice_system[x] == 0
+            χ2(x) = slice_surface[x]
+            s2 = Directional.s2(CartesianIndices(slice_system),
+                                Directional.SeparableIndicator(χ1, χ2);
+                                periodic = tracker.periodic,
+                                plans    = tracker.fft_plans,
+                                len      = len)
+            s2.success[:x]
+        end
+
+        dict[direction] = success
+    end
+
+    return dict
+end
+
 function update_gradient!(tracker  :: CorrelationTracker{T, N},
                           index    :: CartesianIndex{N}) where {T, N}
     grad   = tracker.grad

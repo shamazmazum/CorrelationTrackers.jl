@@ -61,6 +61,7 @@ AbstractTracker
 S2Tracker
 L2Tracker
 SSTracker
+SVTracker
 default_trackers
 CorrelationTracker
 tracked_data
@@ -75,3 +76,6 @@ rollback!
 Currently `Directional.l2` and `Directional.s2` return internal structures of
 supplied tracker. Do not modify them. This behavior can be changed to a safer
 one in the future.
+
+Phase argument to `SSTracker` and `SVTracker` is currently ignored. It should be
+OK as long as tracked system is two-phase.

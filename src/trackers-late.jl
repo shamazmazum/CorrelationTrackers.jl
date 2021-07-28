@@ -35,7 +35,7 @@ Return $F_{sv}_2^{\text{phase}}$ function for an underlying system of the
 tracker `x`.
 """
 Directional.surfvoid(tracker :: CorrelationTracker{T}, phase) where T =
-    tracker.corrdata[SSTracker{T}(phase)]
+    tracker.corrdata[SVTracker{T}(phase)]
 
 # Make AbstractTracker callable for convenience
 (tracked :: L2Tracker{T})(tracker :: CorrelationTracker{T}) where T =
