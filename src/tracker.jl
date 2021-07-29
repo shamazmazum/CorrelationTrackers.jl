@@ -108,7 +108,20 @@ function CorrelationTracker(system     :: AbstractArray{T, N};
         len, directions)
 end
 
-const SimpleTracker{T}  = Union{L2Tracker{T}, S2Tracker{T}}
+"""
+    CorrelationTracker(system, like)
+
+Create a `CorrelationTracker` on top of array `system` with parameters
+matching those in the tracker `like`.
+"""
+function CorrelationTracker(system :: AbstractArray{T, N},
+                            like   :: CorrelationTracker{T, N}) where {T, N}
+    return CorrelationTracker(copy(system);
+                              tracking   = like |> tracked_data |> collect,
+                              periodic   = like.periodic,
+                              directions = tracked_directions(like),
+                              len        = tracked_length(like))
+end
 
 function update_cf(tracker :: CorrelationTracker{T, N},
                    data    :: SimpleTracker{T},

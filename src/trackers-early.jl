@@ -58,6 +58,8 @@ struct SVTracker{T} <: AbstractTracker{T}
     phase :: T
 end
 
+const SimpleTracker{T}  = Union{L2Tracker{T}, S2Tracker{T}}
+
 # Utility functions
 maybe_call_with_plans(slice :: AbstractArray{T},
                       data  :: S2Tracker{T};
