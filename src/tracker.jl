@@ -41,11 +41,10 @@ default_trackers(T :: Type) = [S2Tracker{T}(0), L2Tracker{T}(1), L2Tracker{T}(0)
 Create correlation functions tracker.
 
 Create correlation tracker for the array `system`. `tracking` is a
-vector of `AbstractTracker` structures which specify correlation
-functions you wish to track. `periodic` and `direction` have the same
-meaning as in the most functions in `CorrelationFunctions.jl`
-package. Additional arguments such as `len` may be passed in
-`kwargs`.
+vector of `AbstractTracker` types which specify correlation functions
+you wish to track. `periodic` and `direction` have the same meaning as
+in the most functions in `CorrelationFunctions.jl` package. Additional
+arguments such as `len` may be passed in `kwargs`.
 
 Returned tracker supports interface of `AbstractArray` (e.g. you can
 perform element-wise read and write operations).
@@ -335,6 +334,15 @@ end
 
 Return an iterator over correlation function descriptors which are
 tracked by the tracker.
+
+# Examples
+```jldoctest
+julia> CorrelationTracker(rand(0:1, (50, 100))) |> tracked_data |> collect
+3-element Vector{AbstractTracker{Int64}}:
+ L2Tracker{Int64}(1)
+ S2Tracker{Int64}(0)
+ L2Tracker{Int64}(0)
+```
 """
 tracked_data(x :: CorrelationTracker) = x.corrdata |> keys
 
@@ -345,7 +353,7 @@ Return maximal tracked correlation length
 
 # Examples
 ```jldoctest
-julia> tracked_length(CorrelationTracker{Int,2}(rand(0:1, (50, 100))))
+julia> tracked_length(CorrelationTracker(rand(0:1, (50, 100))))
 25
 ```
 """
@@ -358,7 +366,7 @@ Return directions along which correlation functions are tracked.
 
 # Examples
 ```jldoctest
-julia> tracked_directions(CorrelationTracker{Int,2}(rand(0:1, (50, 100))))
+julia> tracked_directions(CorrelationTracker(rand(0:1, (50, 100))))
 2-element Vector{Symbol}:
  :x
  :y
