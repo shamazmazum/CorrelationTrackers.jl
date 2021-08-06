@@ -15,7 +15,7 @@ times faster compared to a full recalculation of the correlation functions for
 that system.
 
 This package also supports fast rollback to the previous state if the last
-update must be rejected.
+update must be rejected (via `AnnealingRollbackAPI`).
 
 ## Examples
 
@@ -85,13 +85,6 @@ default_trackers
 tracked_data
 tracked_length
 tracked_directions
-```
-
-### Rollback mechanism
-
-```@docs
-update_corrfns!
-rollback!
 ```
 
 ## Caveats

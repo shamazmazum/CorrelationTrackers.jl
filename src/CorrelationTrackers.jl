@@ -1,4 +1,6 @@
 module CorrelationTrackers
+using Reexport: @reexport
+@reexport using AnnealingRollbackAPI
 using CorrelationFunctions
 using Base.Iterators: zip, countfrom, takewhile, take
 using CircularArrays: CircularArray
@@ -19,9 +21,5 @@ export
 
     tracked_data,
     tracked_length,
-    tracked_directions,
-
-    RollbackToken,
-    update_corrfns!,
-    rollback!
+    tracked_directions
 end # module

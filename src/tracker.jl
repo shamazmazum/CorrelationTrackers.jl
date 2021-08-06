@@ -17,7 +17,7 @@ struct CorrelationTracker{T, N, A} <: AbstractArray{T, N}
 end
 
 CDUpdateInfo{T} = Dict{Tuple{AbstractTracker{T}, Symbol}, Vector}
-struct RollbackToken{T, N}
+struct RollbackToken{T, N} <: AbstractRollbackToken
     val      :: T
     index    :: CartesianIndex{N}
     corrdata :: CDUpdateInfo{T}
@@ -260,18 +260,9 @@ function rollback_gradient!(tracker :: CorrelationTracker{T, N},
     return nothing
 end
 
-"""
-    update_corrfns!(tracker, value, index)
-
-This function is equivalent to writing `tracker[index] = value` with
-exception that it also returns a rollback handle which can fastly
-bring the tracker to the previous state by calling `rollback!`.
-
-See also: [`rollback!`](@ref).
-"""
-function update_corrfns!(tracker :: CorrelationTracker{T,N},
-                         val,
-                         index   :: CartesianIndex{N}) where {T, N}
+function AnnealingRollbackAPI.update_corrfns!(tracker :: CorrelationTracker{T,N},
+                                              val,
+                                              index   :: CartesianIndex{N}) where {T, N}
     trackers = keys(tracker.corrdata)
     update_info = CDUpdateInfo{T}()
     directions = tracker.directions
@@ -307,16 +298,8 @@ function update_corrfns!(tracker :: CorrelationTracker{T,N},
     return RollbackToken{T, N}(oldval, index, update_info, grad)
 end
 
-"""
-    rollback!(tracker, token)
-
-Bring the system to the state before `update_corrfns!` was
-called. `token` must be an object returned by `update_corrfns!`.
-
-See also: [`update_corrfns!`](@ref).
-"""
-function rollback!(tracker  :: CorrelationTracker{T, N},
-                   rollback :: RollbackToken{T, N}) where {T, N}
+function AnnealingRollbackAPI.rollback!(tracker  :: CorrelationTracker{T, N},
+                                        rollback :: RollbackToken{T, N}) where {T, N}
     trackers = keys(tracker.corrdata)
     index    = rollback.index
     val      = rollback.val
@@ -391,4 +374,4 @@ tracked_directions(x :: CorrelationTracker) = x.directions
 Base.size(x :: CorrelationTracker) = size(x.system)
 Base.getindex(x :: CorrelationTracker, idx :: Vararg{Int}) = getindex(x.system, idx...)
 Base.setindex!(x :: CorrelationTracker{T}, val, idx :: Vararg{Int}) where T =
-    update_corrfns!(x, val, CartesianIndex(idx))
+    AnnealingRollbackAPI.update_corrfns!(x, val, CartesianIndex(idx))
