@@ -69,6 +69,8 @@ pretty_table(stdout, hcat(Directional.s2(system,  1) |> mean,
 
 ### Types used to designate a correlation function
 
+This is a part of `AnnealingAPI.jl` package since version `0.6.0`.
+
 ```@docs
 AbstractTracker
 S2Tracker
@@ -82,6 +84,12 @@ SVTracker
 ```@docs
 CorrelationTracker
 default_trackers
+```
+
+The following functions are reexported from `AnnealingAPI.jl` since version
+`0.6.0`.
+
+```@docs
 tracked_data
 tracked_length
 tracked_directions

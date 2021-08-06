@@ -40,20 +40,9 @@ Directional.surfvoid(tracker :: CorrelationTracker{T}, phase) where T =
 # Make AbstractTracker callable for convenience
 (tracked :: L2Tracker{T})(tracker :: CorrelationTracker{T}) where T =
     tracker.corrdata[tracked]
-(tracked :: L2Tracker{T})(system :: AbstractArray{T}; kwargs...) where T =
-    Directional.l2(system, tracked.phase; kwargs...)
-
 (tracked :: S2Tracker{T})(tracker :: CorrelationTracker{T}) where T =
     tracker.corrdata[tracked]
-(tracked :: S2Tracker{T})(system :: AbstractArray{T}; kwargs...) where T =
-    Directional.s2(system, tracked.phase; kwargs...)
-
 (tracked :: SSTracker{T})(tracker :: CorrelationTracker{T}) where T =
     tracker.corrdata[tracked]
-(tracked :: SSTracker{T})(system :: AbstractArray{T}; kwargs...) where T =
-    Directional.surfsurf(system, tracked.phase; kwargs...)
-
 (tracked :: SVTracker{T})(tracker :: CorrelationTracker{T}) where T =
     tracker.corrdata[tracked]
-(tracked :: SVTracker{T})(system :: AbstractArray{T}; kwargs...) where T =
-    Directional.surfvoid(system, tracked.phase; kwargs...)

@@ -1,3 +1,22 @@
+const SimpleTracker{T}  = Union{L2Tracker{T}, S2Tracker{T}}
+
+# Utility functions
+maybe_call_with_plans(slice :: AbstractArray{T},
+                      data  :: S2Tracker{T};
+                      plans :: Directional.S2FTPlans,
+                      kwargs...) where T =
+                          data(slice; plans = plans, kwargs...)
+maybe_call_with_plans(slice :: AbstractArray{T},
+                      data  :: AbstractTracker{T};
+                      plans :: Directional.S2FTPlans,
+                      kwargs...) where T =
+                          data(slice; kwargs...)
+
+# Is gradient update needed?
+update_gradient_p(:: SSTracker)       = true
+update_gradient_p(:: SVTracker)       = true
+update_gradient_p(:: AbstractTracker) = false
+
 function gradient(array :: AbstractArray)
     deltas = imgradients(array, KernelFactors.sobel)
     return map((x...) -> norm(x), deltas...)
@@ -260,9 +279,9 @@ function rollback_gradient!(tracker :: CorrelationTracker{T, N},
     return nothing
 end
 
-function AnnealingRollbackAPI.update_corrfns!(tracker :: CorrelationTracker{T,N},
-                                              val,
-                                              index   :: CartesianIndex{N}) where {T, N}
+function AnnealingAPI.update_corrfns!(tracker :: CorrelationTracker{T,N},
+                                      val,
+                                      index   :: CartesianIndex{N}) where {T, N}
     trackers = keys(tracker.corrdata)
     update_info = CDUpdateInfo{T}()
     directions = tracker.directions
@@ -298,8 +317,8 @@ function AnnealingRollbackAPI.update_corrfns!(tracker :: CorrelationTracker{T,N}
     return RollbackToken{T, N}(oldval, index, update_info, grad)
 end
 
-function AnnealingRollbackAPI.rollback!(tracker  :: CorrelationTracker{T, N},
-                                        rollback :: RollbackToken{T, N}) where {T, N}
+function AnnealingAPI.rollback!(tracker  :: CorrelationTracker{T, N},
+                                rollback :: RollbackToken{T, N}) where {T, N}
     trackers = keys(tracker.corrdata)
     index    = rollback.index
     val      = rollback.val
@@ -325,53 +344,12 @@ function AnnealingRollbackAPI.rollback!(tracker  :: CorrelationTracker{T, N},
 end
 
 # Interface
-"""
-    tracked_data(x :: CorrelationTracker)
-
-Return an iterator over correlation function descriptors which are
-tracked by the tracker.
-
-# Examples
-```jldoctest
-julia> CorrelationTracker(rand(0:1, (50, 100))) |> tracked_data |> collect
-3-element Vector{AbstractTracker{Int64}}:
- L2Tracker{Int64}(1)
- S2Tracker{Int64}(0)
- L2Tracker{Int64}(0)
-```
-"""
-tracked_data(x :: CorrelationTracker) = x.corrdata |> keys
-
-"""
-    tracked_length(x :: CorrelationTracker)
-
-Return maximal tracked correlation length
-
-# Examples
-```jldoctest
-julia> tracked_length(CorrelationTracker(rand(0:1, (50, 100))))
-25
-```
-"""
-tracked_length(x :: CorrelationTracker) = x.corrlen
-
-"""
-    tracked_directions(x :: CorrelationTracker)
-
-Return directions along which correlation functions are tracked.
-
-# Examples
-```jldoctest
-julia> tracked_directions(CorrelationTracker(rand(0:1, (50, 100))))
-2-element Vector{Symbol}:
- :x
- :y
-```
-"""
-tracked_directions(x :: CorrelationTracker) = x.directions
+AnnealingAPI.tracked_data(x :: CorrelationTracker) = x.corrdata |> keys
+AnnealingAPI.tracked_length(x :: CorrelationTracker) = x.corrlen
+AnnealingAPI.tracked_directions(x :: CorrelationTracker) = x.directions
 
 # Array interface
 Base.size(x :: CorrelationTracker) = size(x.system)
 Base.getindex(x :: CorrelationTracker, idx :: Vararg{Int}) = getindex(x.system, idx...)
 Base.setindex!(x :: CorrelationTracker{T}, val, idx :: Vararg{Int}) where T =
-    AnnealingRollbackAPI.update_corrfns!(x, val, CartesianIndex(idx))
+    AnnealingAPI.update_corrfns!(x, val, CartesianIndex(idx))
