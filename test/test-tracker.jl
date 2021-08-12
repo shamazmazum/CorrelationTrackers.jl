@@ -10,9 +10,7 @@ const directions_3d = [
     :xyz, :yxz, :xzy, :zyx
 ]
 
-const trackers_any = [S2Tracker(0), L2Tracker(0), L2Tracker(1)]
-const trackers_axial = [SSTracker(0), SVTracker(0)]
-const trackers_all = vcat(trackers_any, trackers_axial)
+const trackers = [S2Tracker(0), L2Tracker(0), L2Tracker(1), SSTracker(0), SVTracker(0)]
 
 create_tracker(array, trackers, periodic, directions) =
     CorrelationTracker(array;
@@ -74,29 +72,21 @@ function test_rollback!(array    :: AbstractArray{T},
 end
 
 @testset "2D system" begin
-    test_tracker!(rand(0:1, (100, 50)),  trackers_any, false, directions_2d)
-    test_tracker!(rand(0:1, (100, 100)), trackers_any, true,  directions_2d)
-    test_tracker!(rand(0:1, (100, 50)),  trackers_all, false, [:x, :y])
-    test_tracker!(rand(0:1, (100, 100)), trackers_all, true,  [:x, :y])
+    test_tracker!(rand(0:1, (100, 50)),  trackers, false, directions_2d)
+    test_tracker!(rand(0:1, (100, 100)), trackers, true,  directions_2d)
 end
 
 @testset "3D system" begin
-    test_tracker!(rand(0:1, (100, 50,  200)), trackers_any, false, directions_3d)
-    test_tracker!(rand(0:1, (100, 100, 100)), trackers_any, true,  directions_3d)
-    test_tracker!(rand(0:1, (100, 50,  200)), trackers_all, false, [:x, :y, :z])
-    test_tracker!(rand(0:1, (100, 100, 100)), trackers_all, true,  [:x, :y, :z])
+    test_tracker!(rand(0:1, (100, 50,  200)), trackers, false, directions_3d)
+    test_tracker!(rand(0:1, (100, 100, 100)), trackers, true,  directions_3d)
 end
 
 @testset "2D system (rollback)" begin
-    test_rollback!(rand(0:1, (100, 50)),  trackers_any, false, directions_2d)
-    test_rollback!(rand(0:1, (100, 100)), trackers_any, true,  directions_2d)
-    test_rollback!(rand(0:1, (100, 50)),  trackers_all, false, [:x, :y])
-    test_rollback!(rand(0:1, (100, 100)), trackers_all, true,  [:x, :y])
+    test_rollback!(rand(0:1, (100, 50)),  trackers, false, directions_2d)
+    test_rollback!(rand(0:1, (100, 100)), trackers, true,  directions_2d)
 end
 
 @testset "3D system (rollback)" begin
-    test_rollback!(rand(0:1, (100, 50,  200)), trackers_any, false, directions_3d)
-    test_rollback!(rand(0:1, (100, 100, 100)), trackers_any, true,  directions_3d)
-    test_rollback!(rand(0:1, (100, 50,  200)), trackers_all, false, [:x, :y, :z])
-    test_rollback!(rand(0:1, (100, 100, 100)), trackers_all, true,  [:x, :y, :z])
+    test_rollback!(rand(0:1, (100, 50,  200)), trackers, false, directions_3d)
+    test_rollback!(rand(0:1, (100, 100, 100)), trackers, true,  directions_3d)
 end

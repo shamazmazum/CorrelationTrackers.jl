@@ -173,12 +173,19 @@ function update_cf(tracker :: CorrelationTracker{T, N},
     len      = length(corrdata)
     dict     = Dict{Symbol, Vector}()
 
-    indices = CartesianIndices(grad)
+    indices    = CartesianIndices(grad)
     fidx, lidx = first(indices), last(indices)
+    uidx       = oneunit(fidx)
 
     for direction in tracker.directions
-        u = axial_index(grad, direction)
-        success = mapreduce(.+, max(index - u, fidx):min(index + u, lidx)) do idx
+        segment_seeds = Vector{CartesianIndex{N}}(undef, 0)
+        for idx in max(index - uidx, fidx):min(index + uidx, lidx)
+            if !any(x -> same_line_p(x, idx, direction), segment_seeds)
+                push!(segment_seeds, idx)
+            end
+        end
+
+        success = mapreduce(.+, segment_seeds) do idx
             slice = get_slice(grad,
                               tracker.periodic,
                               Tuple(idx), direction)
@@ -204,12 +211,19 @@ function update_cf(tracker :: CorrelationTracker{T, N},
     len      = length(corrdata)
     dict     = Dict{Symbol, Vector}()
 
-    indices = CartesianIndices(grad)
+    indices    = CartesianIndices(grad)
     fidx, lidx = first(indices), last(indices)
+    uidx       = oneunit(fidx)
 
     for direction in tracker.directions
-        u = axial_index(grad, direction)
-        success = mapreduce(.+, max(index - u, fidx):min(index + u, lidx)) do idx
+        segment_seeds = Vector{CartesianIndex{N}}(undef, 0)
+        for idx in max(index - uidx, fidx):min(index + uidx, lidx)
+            if !any(x -> same_line_p(x, idx, direction), segment_seeds)
+                push!(segment_seeds, idx)
+            end
+        end
+
+        success = mapreduce(.+, segment_seeds) do idx
             slice_surface = get_slice(grad,
                                       tracker.periodic,
                                       Tuple(idx), direction)

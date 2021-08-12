@@ -59,15 +59,81 @@ end
 @def_slicer 3 :xzy get_slice(a, periodic, idx, (true,  false, true))
 @def_slicer 3 :zyx get_slice(a, periodic, idx, (true,  true,  false))
 
-axial_index(a :: AbstractArray, s :: Symbol) = axial_index(a, Val(s))
-axial_index(:: AbstractArray{T, 2}, :: Val{:x}) where T =
-    CartesianIndex(0, 1)
-axial_index(:: AbstractArray{T, 2}, :: Val{:y}) where T =
-    CartesianIndex(1, 0)
+same_line_p(idx1      :: CartesianIndex{N},
+            idx2      :: CartesianIndex{N},
+            direction :: Symbol) where N =
+    same_line_p(Tuple(idx1), Tuple(idx2), Val(direction))
 
-axial_index(:: AbstractArray{T, 3}, :: Val{:x}) where T =
-    CartesianIndex(0, 1, 1)
-axial_index(:: AbstractArray{T, 3}, :: Val{:y}) where T =
-    CartesianIndex(1, 0, 1)
-axial_index(:: AbstractArray{T, 3}, :: Val{:z}) where T =
-    CartesianIndex(1, 1, 0)
+same_line_p(idx1 :: NTuple{N, Int},
+            idx2 :: NTuple{N, Int},
+            _    :: Val{:x}) where {N} =
+                idx1[1] != idx2[1] &&
+                sum(idx1 .== idx2) == N-1
+
+same_line_p(idx1 :: NTuple{N, Int},
+            idx2 :: NTuple{N, Int},
+            _    :: Val{:y}) where {N} =
+                idx1[2] != idx2[2] &&
+                sum(idx1 .== idx2) == N-1
+
+same_line_p(idx1 :: NTuple{N, Int},
+            idx2 :: NTuple{N, Int},
+            _    :: Val{:z}) where {N} =
+                idx1[3] != idx2[3] &&
+                sum(idx1 .== idx2) == N-1
+
+same_line_p(idx1 :: NTuple{N, Int},
+            idx2 :: NTuple{N, Int},
+            _    :: Val{:xy}) where {N} =
+                (idx2[2] - idx1[2]) == (idx2[1] - idx1[1]) &&
+                sum(idx1 .== idx2) == N-2
+
+same_line_p(idx1 :: NTuple{N, Int},
+            idx2 :: NTuple{N, Int},
+            _    :: Val{:yx}) where {N} =
+                (idx2[2] - idx1[2]) == (idx1[1] - idx2[1]) &&
+                sum(idx1 .== idx2) == N-2
+
+same_line_p(idx1 :: NTuple{3, Int},
+            idx2 :: NTuple{3, Int},
+            _    :: Val{:xz}) =
+                (idx2[3] - idx1[3]) == (idx2[1] - idx1[1]) &&
+                idx1[2] == idx2[2]
+
+same_line_p(idx1 :: NTuple{3, Int},
+            idx2 :: NTuple{3, Int},
+            _    :: Val{:zx}) =
+                (idx2[3] - idx1[3]) == (idx1[1] - idx2[1]) &&
+                idx1[2] == idx2[2]
+
+same_line_p(idx1 :: NTuple{3, Int},
+            idx2 :: NTuple{3, Int},
+            _    :: Val{:yz}) =
+                (idx2[3] - idx1[3]) == (idx2[2] - idx1[2]) &&
+                idx1[1] == idx2[1]
+
+same_line_p(idx1 :: NTuple{3, Int},
+            idx2 :: NTuple{3, Int},
+            _    :: Val{:zy}) =
+                (idx2[3] - idx1[3]) == (idx1[2] - idx2[2]) &&
+                idx1[1] == idx2[1]
+
+same_line_p(idx1 :: NTuple{3, Int},
+            idx2 :: NTuple{3, Int},
+            _    :: Val{:xyz}) =
+                (idx2[3] - idx1[3]) == (idx2[2] - idx1[2]) == (idx2[1] - idx1[1])
+
+same_line_p(idx1 :: NTuple{3, Int},
+            idx2 :: NTuple{3, Int},
+            _    :: Val{:yxz}) =
+                (idx2[3] - idx1[3]) == (idx2[2] - idx1[2]) == (idx1[1] - idx2[1])
+
+same_line_p(idx1 :: NTuple{3, Int},
+            idx2 :: NTuple{3, Int},
+            _    :: Val{:xzy}) =
+                (idx2[3] - idx1[3]) == (idx1[2] - idx2[2]) == (idx2[1] - idx1[1])
+
+same_line_p(idx1 :: NTuple{3, Int},
+            idx2 :: NTuple{3, Int},
+            _    :: Val{:zyx}) =
+                (idx1[3] - idx2[3]) == (idx2[2] - idx1[2]) == (idx2[1] - idx1[1])
