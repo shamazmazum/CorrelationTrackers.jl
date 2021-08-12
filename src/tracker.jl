@@ -1,4 +1,5 @@
 const SimpleTracker{T}  = Union{L2Tracker{T}, S2Tracker{T}}
+const SurfaceTracker{T} = Union{SSTracker{T}, SVTracker{T}}
 
 # Utility functions
 maybe_call_with_plans(slice :: AbstractArray{T},
@@ -147,7 +148,6 @@ function update_cf(tracker :: CorrelationTracker{T, N},
                    val,
                    index   :: CartesianIndex{N}) where {T, N}
     corrdata = tracker.corrdata[data]
-    len      = length(corrdata)
     dict     = Dict{Symbol, Vector}()
 
     for direction in tracker.directions
@@ -157,61 +157,56 @@ function update_cf(tracker :: CorrelationTracker{T, N},
         scorr = maybe_call_with_plans(slice, data;
                                       plans    = tracker.fft_plans,
                                       periodic = tracker.periodic,
-                                      len = len)
+                                      len      = tracker.corrlen)
         dict[direction] = scorr.success[:x]
     end
 
     return dict
 end
 
-function update_cf(tracker :: CorrelationTracker{T, N},
-                   data    :: SSTracker{T},
-                   val,
-                   index   :: CartesianIndex{N}) where {T, N}
-    corrdata = tracker.corrdata[data]
-    grad     = tracker.grad
-    len      = length(corrdata)
-    dict     = Dict{Symbol, Vector}()
+function update_at_point(tracker   :: CorrelationTracker{T, N},
+                         index     :: CartesianIndex{N},
+                         direction :: Symbol,
+                         _         :: SSTracker{T}) where {T, N}
+    slice = get_slice(tracker.grad,
+                      tracker.periodic,
+                      Tuple(index), direction)
+    s2 = Directional.s2(slice, Directional.SeparableIndicator(identity);
+                        periodic = tracker.periodic,
+                        plans    = tracker.fft_plans,
+                        len      = tracker.corrlen)
+    return s2.success[:x]
+end
 
-    indices    = CartesianIndices(grad)
-    fidx, lidx = first(indices), last(indices)
-    uidx       = oneunit(fidx)
-
-    for direction in tracker.directions
-        segment_seeds = Vector{CartesianIndex{N}}(undef, 0)
-        for idx in max(index - uidx, fidx):min(index + uidx, lidx)
-            if !any(x -> same_line_p(x, idx, direction), segment_seeds)
-                push!(segment_seeds, idx)
-            end
-        end
-
-        success = mapreduce(.+, segment_seeds) do idx
-            slice = get_slice(grad,
+function update_at_point(tracker   :: CorrelationTracker{T, N},
+                         index     :: CartesianIndex{N},
+                         direction :: Symbol,
+                         _         :: SVTracker{T}) where {T, N}
+    slice_surface = get_slice(tracker.grad,
                               tracker.periodic,
-                              Tuple(idx), direction)
-            s2 = Directional.s2(slice, Directional.SeparableIndicator(identity);
-                                periodic = tracker.periodic,
-                                plans    = tracker.fft_plans,
-                                len      = len)
-            s2.success[:x]
-        end
+                              Tuple(index), direction)
+    slice_system = get_slice(tracker.system,
+                             tracker.periodic,
+                             Tuple(index), direction)
 
-        dict[direction] = success
-    end
-
-    return dict
+    χ1(x) = slice_system[x] == 0
+    χ2(x) = slice_surface[x]
+    s2 = Directional.s2(CartesianIndices(slice_system),
+                        Directional.SeparableIndicator(χ1, χ2);
+                        periodic = tracker.periodic,
+                        plans    = tracker.fft_plans,
+                        len      = tracker.corrlen)
+    return s2.success[:x]
 end
 
 function update_cf(tracker :: CorrelationTracker{T, N},
-                   data    :: SVTracker{T},
+                   data    :: SurfaceTracker{T},
                    val,
                    index   :: CartesianIndex{N}) where {T, N}
     corrdata = tracker.corrdata[data]
-    grad     = tracker.grad
-    len      = length(corrdata)
     dict     = Dict{Symbol, Vector}()
 
-    indices    = CartesianIndices(grad)
+    indices    = CartesianIndices(tracker)
     fidx, lidx = first(indices), last(indices)
     uidx       = oneunit(fidx)
 
@@ -224,20 +219,7 @@ function update_cf(tracker :: CorrelationTracker{T, N},
         end
 
         success = mapreduce(.+, segment_seeds) do idx
-            slice_surface = get_slice(grad,
-                                      tracker.periodic,
-                                      Tuple(idx), direction)
-            slice_system = get_slice(tracker.system,
-                                     tracker.periodic,
-                                     Tuple(idx), direction)
-            χ1(x) = slice_system[x] == 0
-            χ2(x) = slice_surface[x]
-            s2 = Directional.s2(CartesianIndices(slice_system),
-                                Directional.SeparableIndicator(χ1, χ2);
-                                periodic = tracker.periodic,
-                                plans    = tracker.fft_plans,
-                                len      = len)
-            s2.success[:x]
+            update_at_point(tracker, idx, direction, data)
         end
 
         dict[direction] = success

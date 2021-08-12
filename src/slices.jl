@@ -33,7 +33,7 @@ macro def_slicer(ndims, direction, expr)
     :(get_slice(a        :: AbstractArray{T, $ndims},
                 periodic :: Bool,
                 idx      :: NTuple{$ndims, Int},
-                         :: Val{$direction}) where T = $expr)
+                _        :: Val{$direction}) where T = $expr)
 end
 
 # 2D
@@ -59,81 +59,32 @@ end
 @def_slicer 3 :xzy get_slice(a, periodic, idx, (true,  false, true))
 @def_slicer 3 :zyx get_slice(a, periodic, idx, (true,  true,  false))
 
+macro def_same_line(ndims, direction, expr)
+    :(same_line_p(idx1 :: CartesianIndex{$ndims},
+                  idx2 :: CartesianIndex{$ndims},
+                  _    :: Val{$direction}) = $expr)
+end
+
 same_line_p(idx1      :: CartesianIndex{N},
             idx2      :: CartesianIndex{N},
             direction :: Symbol) where N =
-    same_line_p(Tuple(idx1), Tuple(idx2), Val(direction))
+                same_line_p(idx1, idx2, Val(direction))
 
-same_line_p(idx1 :: NTuple{N, Int},
-            idx2 :: NTuple{N, Int},
-            _    :: Val{:x}) where {N} =
-                idx1[1] != idx2[1] &&
-                sum(idx1 .== idx2) == N-1
+@def_same_line 2 :x  idx1[2] == idx2[2]
+@def_same_line 2 :y  idx1[1] == idx2[1]
+@def_same_line 2 :xy (idx2[2] - idx1[2]) == (idx2[1] - idx1[1])
+@def_same_line 2 :yx (idx2[2] - idx1[2]) == (idx1[1] - idx2[1])
 
-same_line_p(idx1 :: NTuple{N, Int},
-            idx2 :: NTuple{N, Int},
-            _    :: Val{:y}) where {N} =
-                idx1[2] != idx2[2] &&
-                sum(idx1 .== idx2) == N-1
-
-same_line_p(idx1 :: NTuple{N, Int},
-            idx2 :: NTuple{N, Int},
-            _    :: Val{:z}) where {N} =
-                idx1[3] != idx2[3] &&
-                sum(idx1 .== idx2) == N-1
-
-same_line_p(idx1 :: NTuple{N, Int},
-            idx2 :: NTuple{N, Int},
-            _    :: Val{:xy}) where {N} =
-                (idx2[2] - idx1[2]) == (idx2[1] - idx1[1]) &&
-                sum(idx1 .== idx2) == N-2
-
-same_line_p(idx1 :: NTuple{N, Int},
-            idx2 :: NTuple{N, Int},
-            _    :: Val{:yx}) where {N} =
-                (idx2[2] - idx1[2]) == (idx1[1] - idx2[1]) &&
-                sum(idx1 .== idx2) == N-2
-
-same_line_p(idx1 :: NTuple{3, Int},
-            idx2 :: NTuple{3, Int},
-            _    :: Val{:xz}) =
-                (idx2[3] - idx1[3]) == (idx2[1] - idx1[1]) &&
-                idx1[2] == idx2[2]
-
-same_line_p(idx1 :: NTuple{3, Int},
-            idx2 :: NTuple{3, Int},
-            _    :: Val{:zx}) =
-                (idx2[3] - idx1[3]) == (idx1[1] - idx2[1]) &&
-                idx1[2] == idx2[2]
-
-same_line_p(idx1 :: NTuple{3, Int},
-            idx2 :: NTuple{3, Int},
-            _    :: Val{:yz}) =
-                (idx2[3] - idx1[3]) == (idx2[2] - idx1[2]) &&
-                idx1[1] == idx2[1]
-
-same_line_p(idx1 :: NTuple{3, Int},
-            idx2 :: NTuple{3, Int},
-            _    :: Val{:zy}) =
-                (idx2[3] - idx1[3]) == (idx1[2] - idx2[2]) &&
-                idx1[1] == idx2[1]
-
-same_line_p(idx1 :: NTuple{3, Int},
-            idx2 :: NTuple{3, Int},
-            _    :: Val{:xyz}) =
-                (idx2[3] - idx1[3]) == (idx2[2] - idx1[2]) == (idx2[1] - idx1[1])
-
-same_line_p(idx1 :: NTuple{3, Int},
-            idx2 :: NTuple{3, Int},
-            _    :: Val{:yxz}) =
-                (idx2[3] - idx1[3]) == (idx2[2] - idx1[2]) == (idx1[1] - idx2[1])
-
-same_line_p(idx1 :: NTuple{3, Int},
-            idx2 :: NTuple{3, Int},
-            _    :: Val{:xzy}) =
-                (idx2[3] - idx1[3]) == (idx1[2] - idx2[2]) == (idx2[1] - idx1[1])
-
-same_line_p(idx1 :: NTuple{3, Int},
-            idx2 :: NTuple{3, Int},
-            _    :: Val{:zyx}) =
-                (idx1[3] - idx2[3]) == (idx2[2] - idx1[2]) == (idx2[1] - idx1[1])
+@def_same_line 3 :x  idx1[2] == idx2[2] && idx1[3] == idx2[3]
+@def_same_line 3 :y  idx1[1] == idx2[1] && idx1[3] == idx2[3]
+@def_same_line 3 :z  idx1[1] == idx2[1] && idx1[2] == idx2[2]
+@def_same_line 3 :xy (idx2[2] - idx1[2]) == (idx2[1] - idx1[1]) && idx1[3] == idx2[3]
+@def_same_line 3 :yx (idx2[2] - idx1[2]) == (idx1[1] - idx2[1]) && idx1[3] == idx2[3]
+@def_same_line 3 :xz (idx2[3] - idx1[3]) == (idx2[1] - idx1[1]) && idx1[2] == idx2[2]
+@def_same_line 3 :zx (idx2[3] - idx1[3]) == (idx1[1] - idx2[1]) && idx1[2] == idx2[2]
+@def_same_line 3 :yz (idx2[3] - idx1[3]) == (idx2[2] - idx1[2]) && idx1[1] == idx2[1]
+@def_same_line 3 :zy (idx2[3] - idx1[3]) == (idx1[2] - idx2[2]) && idx1[1] == idx2[1]
+@def_same_line 3 :xyz (idx2[3] - idx1[3]) == (idx2[2] - idx1[2]) == (idx2[1] - idx1[1])
+@def_same_line 3 :yxz (idx2[3] - idx1[3]) == (idx2[2] - idx1[2]) == (idx1[1] - idx2[1])
+@def_same_line 3 :xzy (idx2[3] - idx1[3]) == (idx1[2] - idx2[2]) == (idx2[1] - idx1[1])
+@def_same_line 3 :zyx (idx1[3] - idx2[3]) == (idx2[2] - idx1[2]) == (idx2[1] - idx1[1])
