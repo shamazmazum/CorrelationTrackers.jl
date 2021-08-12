@@ -1,7 +1,7 @@
 name = "CorrelationTrackers"
 uuid = "2aaf3720-2af0-4ca4-b7d9-7d970023fcad"
 authors = ["Vasily Postnicov <shamaz.mazum@gmail.com>"]
-version = "0.6.0"
+version = "0.6.1"
 
 [deps]
 AnnealingAPI = "ea73c536-af4e-4c29-9508-d79bc79c0161"
