@@ -9,9 +9,11 @@ using Images: imgradients, KernelFactors
 
 include("slices.jl")
 include("tracker.jl")
+include("extrapolation.jl")
 include("helpers.jl")
 
 export
     CorrelationTracker,
+    ExtrapolatedData,
     default_trackers
 end # module

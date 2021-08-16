@@ -46,3 +46,20 @@ Directional.surfvoid(tracker :: CorrelationTracker{T}, phase) where T =
     tracker.corrdata[tracked]
 (tracked :: SVTracker{T})(tracker :: CorrelationTracker{T}) where T =
     tracker.corrdata[tracked]
+
+
+const TrackerAlike{T, N} = Union{CorrelationTracker{T, N}, ExtrapolatedData{T, N}}
+"""
+    CorrelationTracker(system, like)
+
+Create a `CorrelationTracker` on top of array `system` with parameters
+matching those in the tracker `like`.
+"""
+function CorrelationTracker(system :: AbstractArray{T, N},
+                            like   :: TrackerAlike{T, N}) where {T, N}
+    return CorrelationTracker(copy(system);
+                              tracking   = like |> tracked_data |> collect,
+                              periodic   = like.periodic,
+                              directions = tracked_directions(like),
+                              len        = tracked_length(like))
+end
