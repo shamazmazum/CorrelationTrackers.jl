@@ -1,5 +1,6 @@
 const SimpleTracker{T}  = Union{L2Tracker{T}, S2Tracker{T}}
 const SurfaceTracker{T} = Union{SSTracker{T}, SVTracker{T}}
+const CorrdataDict{T}   = Dict{AbstractTracker{T}, Directional.CorrelationData}
 
 # Utility functions
 maybe_call_with_plans(slice :: AbstractArray{T},
@@ -26,8 +27,7 @@ end
 struct CorrelationTracker{T, N, A} <: AbstractArray{T, N}
     system     :: A
     periodic   :: Bool
-    corrdata   :: Dict{AbstractTracker{T},
-                       Directional.CorrelationData}
+    corrdata   :: CorrdataDict{T}
     grad       :: Array{Float64, N}
     fft_plans  :: Directional.S2FTPlans
 
@@ -113,12 +113,12 @@ function CorrelationTracker(system     :: AbstractArray{T, N};
                             periodic   :: Bool           = false,
                             directions :: Vector{Symbol} = system |> Directional.default_directions,
                             kwargs...) where {T, N}
-    corrdata = Dict{AbstractTracker{T}, Directional.CorrelationData}(
-        data => data(system;
-                     periodic   = periodic,
-                     directions = directions,
-                     kwargs...)
-        for data in tracking)
+    corrdata =
+        CorrdataDict{T}(data => data(system;
+                                     periodic   = periodic,
+                                     directions = directions,
+                                     kwargs...)
+                        for data in tracking)
     len = length(first(corrdata)[2])
     # FIXME: What about multiphase systems?
     return CorrelationTracker{T, N, typeof(system)}(
