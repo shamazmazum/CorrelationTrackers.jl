@@ -90,3 +90,17 @@ end
     test_rollback!(rand(0:1, (100, 50,  200)), trackers, false, directions_3d)
     test_rollback!(rand(0:1, (100, 100, 100)), trackers, true,  directions_3d)
 end
+
+@testset "Extrapolations" begin
+    # TODO: test diagonals
+    array = rand(0:1, (200, 200))
+    tracker = CorrelationTracker(array; periodic = true)
+    extra = ExtrapolatedData(tracker, 3, [:x, :y, :z])
+
+    s21 = Directional.s2(tracker, 0)
+    s22 = Directional.s2(extra, 0)
+
+    @test s22[:x] ≈ s21[:x]
+    @test s22[:y] ≈ s21[:y]
+    @test s22[:z] ≈ (s21[:x] + s21[:y]) / 2
+end
