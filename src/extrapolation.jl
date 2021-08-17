@@ -27,6 +27,19 @@ function new_shape(shape :: NTuple{N, Int}, dimensions :: Int) where N
     return (shape[1:mindim]..., Tuple(minelt for n in 1:(dimensions - N))...)
 end
 
+function extrapolate_vector(data           :: Vector{T},
+                            data_grid_step :: Float64,
+                            extr_grid_step :: Float64) where T
+    grid = range(0; length = length(data), step = data_grid_step)
+    itp  = interpolate((grid,), data, Gridded(Linear()))
+    ext  = extrapolate(itp, Line())
+
+    new_grid = range(0; length = length(data), step = extr_grid_step)
+    new_data = [ext(x) for x in new_grid]
+
+    return T <: Integer ? new_data .|> round .|> T : new_data
+end
+
 function extrapolate_data(data       :: Directional.CorrelationData,
                           directions :: Vector{Symbol})
     # TODO: use real extrapolation here
@@ -38,9 +51,9 @@ function extrapolate_data(data       :: Directional.CorrelationData,
             if direction ∈ data
                 direction => dict[direction]
             else
-                direction => reduce(.+, dict[dir]
-                                    for dir in Directional.directions(data)
-                                    if unit_length(direction) == unit_length(dir))
+                exdata = (extrapolate_vector(dict[dir], unit_length(dir), unit_length(direction))
+                          for dir in Directional.directions(data))
+                direction => reduce(.+, exdata)
             end
         end
     end
