@@ -27,17 +27,15 @@ function new_shape(shape :: NTuple{N, Int}, dimensions :: Int) where N
     return (shape[1:mindim]..., Tuple(minelt for n in 1:(dimensions - N))...)
 end
 
-function extrapolate_vector(data           :: Vector{T},
+function extrapolate_vector(data           :: Vector{Float64},
                             data_grid_step :: Float64,
-                            extr_grid_step :: Float64) where T
+                            extr_grid_step :: Float64)
     grid = range(0; length = length(data), step = data_grid_step)
     itp  = interpolate((grid,), data, Gridded(Linear()))
     ext  = extrapolate(itp, Line())
 
     new_grid = range(0; length = length(data), step = extr_grid_step)
-    new_data = [ext(x) for x in new_grid]
-
-    return T <: Integer ? new_data .|> round .|> T : new_data
+    return [ext(x) for x in new_grid]
 end
 
 function extrapolate_data(data       :: Directional.CorrelationData,
@@ -78,8 +76,8 @@ function ExtrapolatedData(tracker    :: CorrelationTracker{T, N},
 end
 
 # TODO: Move to CorrelationFunctions.jl maybe?
-function join_data(data1 :: Directional.CorrelationData{T},
-                   data2 :: Directional.CorrelationData{T}) where T
+function join_data(data1 :: Directional.CorrelationData,
+                   data2 :: Directional.CorrelationData)
     @assert Directional.directions(data1) == Directional.directions(data2)
     directions = Directional.directions(data1)
 
@@ -87,7 +85,7 @@ function join_data(data1 :: Directional.CorrelationData{T},
                    for dir in directions)
     total   = Dict(dir => data1.total[dir] + data2.total[dir]
                    for dir in directions)
-    return Directional.CorrelationData{T}(directions, success, total)
+    return Directional.CorrelationData(directions, success, total)
 end
 
 function ExtrapolatedData(data1 :: ExtrapolatedData{T, N},
