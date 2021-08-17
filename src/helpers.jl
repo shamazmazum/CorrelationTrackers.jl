@@ -37,18 +37,8 @@ tracker `x`.
 Directional.surfvoid(tracker :: CorrelationTracker{T}, phase) where T =
     tracker.corrdata[SVTracker{T}(phase)]
 
-# Make AbstractTracker callable for convenience
-(tracked :: L2Tracker{T})(tracker :: CorrelationTracker{T}) where T =
-    tracker.corrdata[tracked]
-(tracked :: S2Tracker{T})(tracker :: CorrelationTracker{T}) where T =
-    tracker.corrdata[tracked]
-(tracked :: SSTracker{T})(tracker :: CorrelationTracker{T}) where T =
-    tracker.corrdata[tracked]
-(tracked :: SVTracker{T})(tracker :: CorrelationTracker{T}) where T =
-    tracker.corrdata[tracked]
-
-
 const TrackerAlike{T, N} = Union{CorrelationTracker{T, N}, ExtrapolatedData{T, N}}
+
 """
     CorrelationTracker(system, like)
 
@@ -63,3 +53,13 @@ function CorrelationTracker(system :: AbstractArray{T, N},
                               directions = tracked_directions(like),
                               len        = tracked_length(like))
 end
+
+# Make AbstractTracker callable for convenience
+(tracked :: L2Tracker{T})(tracker :: TrackerAlike{T}) where T =
+    tracker.corrdata[tracked]
+(tracked :: S2Tracker{T})(tracker :: TrackerAlike{T}) where T =
+    tracker.corrdata[tracked]
+(tracked :: SSTracker{T})(tracker :: TrackerAlike{T}) where T =
+    tracker.corrdata[tracked]
+(tracked :: SVTracker{T})(tracker :: TrackerAlike{T}) where T =
+    tracker.corrdata[tracked]

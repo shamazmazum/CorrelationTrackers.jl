@@ -77,6 +77,39 @@ function ExtrapolatedData(tracker    :: CorrelationTracker{T, N},
                                            shape)
 end
 
+# TODO: Move to CorrelationFunctions.jl maybe?
+function join_data(data1 :: Directional.CorrelationData{T},
+                   data2 :: Directional.CorrelationData{T}) where T
+    @assert Directional.directions(data1) == Directional.directions(data2)
+    directions = Directional.directions(data1)
+
+    success = Dict(dir => data1.success[dir] + data2.success[dir]
+                   for dir in directions)
+    total   = Dict(dir => data1.total[dir] + data2.total[dir]
+                   for dir in directions)
+    return Directional.CorrelationData{T}(directions, success, total)
+end
+
+function ExtrapolatedData(data1 :: ExtrapolatedData{T, N},
+                          data2 :: ExtrapolatedData{T, N}) where {T, N}
+    if data1.periodic             != data2.periodic        ||
+        size(data1)               != size(data2)           ||
+        tracked_data(data1)       != tracked_data(data2)   ||
+        tracked_length(data1)     != tracked_length(data2) ||
+        tracked_directions(data1) != tracked_directions(data2)
+        error("Two ExtrapolationData objects must share the same properties to be joined")
+    end
+
+    joined_data = Dict(tracker => join_data(tracker(data1), tracker(data2))
+                       for tracker in tracked_data(data1))
+
+    return ExtrapolatedData(data1.periodic,
+                            joined_data,
+                            tracked_length(data1),
+                            tracked_directions(data1),
+                            size(data1))
+end
+
 
 Directional.l2(tracker :: ExtrapolatedData{T}, phase) where T =
     tracker.corrdata[L2Tracker{T}(phase)]
