@@ -95,6 +95,19 @@ tracked_length
 tracked_directions
 ```
 
+## Extrapolating to other dimensions and directions
+
+Two or more `CorrelationTracker` objects can be extrapolated to new dimensions
+and/or directions. For this purpose, an object of type `ExtrapolatedData` is
+created which loses the underlying array but preserves tracked correlation
+functions of the original `CorrelationTracker` object plus holds extrapolated
+data. `ExtrapolatedData` is read-only, which means you cannot call
+`update_corrfns!` on it.
+
+```@docs
+ExtrapolatedData
+```
+
 ## Caveats
 
 Currently the functions from `CorrelationFunctions.jl` package return internal

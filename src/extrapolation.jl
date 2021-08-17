@@ -21,6 +21,10 @@ AnnealingAPI.tracked_directions(x :: ExtrapolatedData) = x.directions
 Base.size(x :: ExtrapolatedData) = x.shape
 Base.getindex(x :: ExtrapolatedData{T}, idx :: Vararg{Int}) where T = zero(T)
 
+# Other standard functions
+Base.show(io :: IO, x :: ExtrapolatedData) = print(io, "$(size(x)) $(typeof(x))")
+Base.show(io :: IO, :: MIME"text/plain", x :: ExtrapolatedData) = show(io, x)
+
 function new_shape(shape :: NTuple{N, Int}, dimensions :: Int) where N
     mindim = min(N, dimensions)
     minelt = minimum(shape)
@@ -62,6 +66,58 @@ function extrapolate_data(data       :: Directional.CorrelationData,
     return Directional.CorrelationData(directions, Dict(success), Dict(total))
 end
 
+"""
+    ExtrapolatedData(tracker, dimensions, directions)
+
+Extrapolate correlation functions to other dimensions and/or
+directions. Correlation functions are defined for objects of
+`ExtrapolatedData` type as they are defined for
+`CorrelationTracker`s.
+
+# Example
+```jldoctest mylabel
+julia> begin
+       a = rand(MersenneTwister(1), 0:1, (20, 20));
+       tracker = CorrelationTracker(a; periodic = true);
+       Directional.s2(tracker, 0)
+       end
+┌────────┬────────┐
+│      x │      y │
+├────────┼────────┤
+│ 0.4975 │ 0.4975 │
+│  0.225 │ 0.2325 │
+│  0.265 │   0.25 │
+│   0.24 │   0.25 │
+│  0.235 │  0.245 │
+│ 0.2525 │ 0.2275 │
+│ 0.2525 │ 0.2675 │
+│ 0.2425 │ 0.2475 │
+│  0.245 │  0.235 │
+│ 0.2575 │ 0.2475 │
+└────────┴────────┘
+```
+
+```jdoctest mylabel
+julia> begin
+       extra = ExtrapolatedData(tracker, 3, [:x, :y, :z, :xyz])
+       Directional.s2(extra, 0)
+       end
+┌────────┬────────┬─────────┬──────────┐
+│      x │      y │       z │      xyz │
+├────────┼────────┼─────────┼──────────┤
+│ 0.4975 │ 0.4975 │  0.4975 │   0.4975 │
+│  0.225 │ 0.2325 │ 0.22875 │ 0.249796 │
+│  0.265 │   0.25 │  0.2575 │ 0.242679 │
+│   0.24 │   0.25 │   0.245 │ 0.243923 │
+│  0.235 │  0.245 │    0.24 │ 0.246077 │
+│ 0.2525 │ 0.2275 │    0.24 │ 0.248253 │
+│ 0.2525 │ 0.2675 │    0.26 │ 0.269904 │
+│ 0.2425 │ 0.2475 │   0.245 │ 0.291554 │
+│  0.245 │  0.235 │    0.24 │ 0.313205 │
+│ 0.2575 │ 0.2475 │  0.2525 │ 0.334856 │
+└────────┴────────┴─────────┴──────────┘
+```
+"""
 function ExtrapolatedData(tracker    :: CorrelationTracker{T, N},
                           dimensions :: Int,
                           directions :: Vector{Symbol}) where {T, N}
@@ -88,6 +144,14 @@ function join_data(data1 :: Directional.CorrelationData,
     return Directional.CorrelationData(directions, success, total)
 end
 
+"""
+    ExtrapolatedData(extrapolated_data1, extrapolated_data2)
+
+Return `ExtrapolatedData` object which contains correlation statistics
+from both `extrapolated_data1` and `extrapolated_data2`. The two input
+objects must share the same properties such as the shape of underlying
+data, tracked functions, directions and so on.
+"""
 function ExtrapolatedData(data1 :: ExtrapolatedData{T, N},
                           data2 :: ExtrapolatedData{T, N}) where {T, N}
     if data1.periodic             != data2.periodic        ||
