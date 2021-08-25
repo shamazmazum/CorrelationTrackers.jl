@@ -63,3 +63,14 @@ end
     tracker.corrdata[tracked]
 (tracked :: SVTracker{T})(tracker :: TrackerAlike{T}) where T =
     tracker.corrdata[tracked]
+(tracked :: CCTracker{T})(tracker :: TrackerAlike{T}) where T =
+    tracker.corrdata[tracked]
+
+"""
+    cross_correlation(tracker :: CorrelationTracker, phase1, phase2)
+
+Return precalculated values of cross correlation function for phases
+`phase1` and `phase2`.
+"""
+cross_correlation(tracker :: CorrelationTracker{T}, phase1, phase2) where T =
+    tracker.corrdata[CCTracker{T}(phase1, phase2)]

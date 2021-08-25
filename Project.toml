@@ -1,7 +1,7 @@
 name = "CorrelationTrackers"
 uuid = "2aaf3720-2af0-4ca4-b7d9-7d970023fcad"
 authors = ["Vasily Postnicov <shamaz.mazum@gmail.com>"]
-version = "0.6.2"
+version = "0.6.3"
 
 [deps]
 AnnealingAPI = "ea73c536-af4e-4c29-9508-d79bc79c0161"
@@ -15,7 +15,7 @@ Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 [compat]
 AnnealingAPI = "0.1.0"
 CircularArrays = "1.2"
-CorrelationFunctions = "0.4.0"
+CorrelationFunctions = "0.4.1"
 Images = "0.24"
 Interpolations = "0.13"
 Reexport = "1.1.0"

@@ -9,6 +9,7 @@ change an element of the underlying array. Currently supported functions are:
 * Lineal-path function $L_2(r)$
 * Surface-surface function $F_{ss}(r)$
 * Surface-void function $F_{sv}(r)$
+* Cross-correlation function $S_2^{p_1p_2}(r)$
 
 An update after one element of the underlying system was changed is about 10000
 times faster compared to a full recalculation of the correlation functions for
@@ -93,6 +94,13 @@ The following functions are reexported from `AnnealingAPI.jl` since version
 tracked_data
 tracked_length
 tracked_directions
+```
+
+### Additional correlation functions not covered by AnnealingAPI.jl
+
+```@docs
+CCTracker
+cross_correlation
 ```
 
 ## Extrapolating to other dimensions and directions

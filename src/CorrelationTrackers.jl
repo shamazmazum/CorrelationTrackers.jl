@@ -16,5 +16,7 @@ include("helpers.jl")
 export
     CorrelationTracker,
     ExtrapolatedData,
-    default_trackers
+    default_trackers,
+    # Extra trackers
+    CCTracker, cross_correlation
 end # module

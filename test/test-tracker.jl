@@ -10,7 +10,15 @@ const directions_3d = [
     :xyz, :yxz, :xzy, :zyx
 ]
 
-const trackers = [S2Tracker(0), L2Tracker(0), L2Tracker(1), SSTracker(0), SVTracker(0)]
+const trackers = [
+    S2Tracker(false),
+    L2Tracker(false),
+    L2Tracker(true),
+    SSTracker(false),
+    SVTracker(false),
+    CCTracker(false, true),
+    CCTracker(true, false)
+]
 
 create_tracker(array, trackers, periodic, directions) =
     CorrelationTracker(array;
@@ -72,33 +80,33 @@ function test_rollback!(array    :: AbstractArray{T},
 end
 
 @testset "2D system" begin
-    test_tracker!(rand(0:1, (100, 50)),  trackers, false, directions_2d)
-    test_tracker!(rand(0:1, (100, 100)), trackers, true,  directions_2d)
+    test_tracker!(rand(Bool, (100, 50)),  trackers, false, directions_2d)
+    test_tracker!(rand(Bool, (100, 100)), trackers, true,  directions_2d)
 end
 
 @testset "3D system" begin
-    test_tracker!(rand(0:1, (100, 50,  200)), trackers, false, directions_3d)
-    test_tracker!(rand(0:1, (100, 100, 100)), trackers, true,  directions_3d)
+    test_tracker!(rand(Bool, (100, 50,  200)), trackers, false, directions_3d)
+    test_tracker!(rand(Bool, (100, 100, 100)), trackers, true,  directions_3d)
 end
 
 @testset "2D system (rollback)" begin
-    test_rollback!(rand(0:1, (100, 50)),  trackers, false, directions_2d)
-    test_rollback!(rand(0:1, (100, 100)), trackers, true,  directions_2d)
+    test_rollback!(rand(Bool, (100, 50)),  trackers, false, directions_2d)
+    test_rollback!(rand(Bool, (100, 100)), trackers, true,  directions_2d)
 end
 
 @testset "3D system (rollback)" begin
-    test_rollback!(rand(0:1, (100, 50,  200)), trackers, false, directions_3d)
-    test_rollback!(rand(0:1, (100, 100, 100)), trackers, true,  directions_3d)
+    test_rollback!(rand(Bool, (100, 50,  200)), trackers, false, directions_3d)
+    test_rollback!(rand(Bool, (100, 100, 100)), trackers, true,  directions_3d)
 end
 
 @testset "Extrapolations" begin
     # TODO: test diagonals
-    array = rand(0:1, (200, 200))
+    array = rand(Bool, (200, 200))
     tracker = CorrelationTracker(array; periodic = true)
     extra = ExtrapolatedData(tracker, 3, [:x, :y, :z])
 
-    s21 = Directional.s2(tracker, 0)
-    s22 = Directional.s2(extra, 0)
+    s21 = Directional.s2(tracker, false)
+    s22 = Directional.s2(extra, false)
 
     @test s22[:x] ≈ s21[:x]
     @test s22[:y] ≈ s21[:y]

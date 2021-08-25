@@ -1,18 +1,29 @@
-const SimpleTracker{T}  = Union{L2Tracker{T}, S2Tracker{T}}
+# Cross-correlation tracker not present in AnnealingAPI
+"""
+    CCTracker(phase1, phase2)
+
+Descriptor for cross-corelation function for the phases `phase1` and
+`phase2`.
+
+**NB:** Cross-correlation function does not commute,
+i.e. `CCTracker(phase1, phase2)` and `CCTracker(phase2, phase1)` track
+different functions.
+"""
+struct CCTracker{T} <: AbstractTracker{T}
+    phase1 :: T
+    phase2 :: T
+end
+
+(tracked :: CCTracker{T})(system :: AbstractArray{T}; kwargs...) where T =
+    Directional.s2(system, Directional.SeparableIndicator(x -> x == tracked.phase1,
+                                                          x -> x == tracked.phase2);
+                   kwargs...)
+
+
+
+const SimpleTracker{T}  = Union{L2Tracker{T}, S2Tracker{T}, CCTracker{T}}
 const SurfaceTracker{T} = Union{SSTracker{T}, SVTracker{T}}
 const CorrdataDict{T}   = Dict{AbstractTracker{T}, Directional.CorrelationData}
-
-# Utility functions
-maybe_call_with_plans(slice :: AbstractArray{T},
-                      data  :: S2Tracker{T};
-                      plans :: Directional.S2FTPlans,
-                      kwargs...) where T =
-                          data(slice; plans = plans, kwargs...)
-maybe_call_with_plans(slice :: AbstractArray{T},
-                      data  :: AbstractTracker{T};
-                      plans :: Directional.S2FTPlans,
-                      kwargs...) where T =
-                          data(slice; kwargs...)
 
 # Is gradient update needed?
 update_gradient_p(:: SSTracker)       = true
@@ -139,10 +150,10 @@ function update_cf(tracker :: CorrelationTracker{T, N},
         slice = get_slice(tracker.system,
                           tracker.periodic,
                           Tuple(index), direction)
-        scorr = maybe_call_with_plans(slice, data;
-                                      plans    = tracker.fft_plans,
-                                      periodic = tracker.periodic,
-                                      len      = tracker.corrlen)
+        scorr = data(slice;
+                     plans    = tracker.fft_plans,
+                     periodic = tracker.periodic,
+                     len      = tracker.corrlen)
         dict[direction] = scorr.success[:x]
     end
 
