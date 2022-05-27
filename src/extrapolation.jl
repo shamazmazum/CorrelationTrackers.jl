@@ -33,17 +33,19 @@ end
 
 function extrapolate_vector(data           :: Vector{Float64},
                             data_grid_step :: Float64,
-                            extr_grid_step :: Float64)
+                            extr_grid_step :: Float64,
+                            scale)
     grid = range(0; length = length(data), step = data_grid_step)
     itp  = interpolate((grid,), data, Gridded(Linear()))
-    ext  = extrapolate(itp, Line())
+    ext  = extrapolate(itp, Flat())
 
-    new_grid = range(0; length = length(data), step = extr_grid_step)
+    new_grid = range(0; length = length(data), step = extr_grid_step*scale)
     return [ext(x) for x in new_grid]
 end
 
 function extrapolate_data(data       :: Directional.CorrelationData,
-                          directions :: Vector{Symbol})
+                          directions :: Vector{Symbol},
+                          scale)
     # TODO: use real extrapolation here
     corrlen = length(data)
     unit_length = Directional.unit_length
@@ -53,7 +55,7 @@ function extrapolate_data(data       :: Directional.CorrelationData,
             if direction ∈ data
                 direction => dict[direction]
             else
-                exdata = (extrapolate_vector(dict[dir], unit_length(dir), unit_length(direction))
+                exdata = (extrapolate_vector(dict[dir], unit_length(dir), unit_length(direction), scale)
                           for dir in Directional.directions(data))
                 direction => reduce(.+, exdata)
             end
@@ -120,9 +122,10 @@ julia> begin
 """
 function ExtrapolatedData(tracker    :: CorrelationTracker{T, N},
                           dimensions :: Int,
-                          directions :: Vector{Symbol}) where {T, N}
+                          directions :: Vector{Symbol},
+                          scale) where {T, N}
     shape = new_shape(size(tracker), dimensions)
-    corrdata = CorrdataDict{T}(tracker => extrapolate_data(data, directions)
+    corrdata = CorrdataDict{T}(tracker => extrapolate_data(data, directions, scale)
                                for (tracker, data) in tracker.corrdata)
     return ExtrapolatedData{T, dimensions}(tracker.periodic,
                                            corrdata,

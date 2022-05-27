@@ -6,7 +6,7 @@ using Base.Iterators: zip, countfrom, takewhile, take
 using CircularArrays: CircularArray
 using LinearAlgebra: norm
 using Images: imgradients, KernelFactors
-using Interpolations: interpolate, extrapolate, Gridded, Linear, Line
+using Interpolations: interpolate, extrapolate, Gridded, Linear, Flat
 
 include("slices.jl")
 include("tracker.jl")
